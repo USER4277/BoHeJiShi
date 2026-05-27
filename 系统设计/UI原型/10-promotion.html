@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>薄荷市集 - 营销管理</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Noto Sans SC', -apple-system, sans-serif; }
+    body { background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 50%, #bbf7d0 100%); min-height: 100vh; }
+    .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px); border: 1px solid rgba(34, 197, 94, 0.3); box-shadow: 0 8px 32px rgba(34, 197, 94, 0.15); }
+  </style>
+</head>
+<body class="p-8">
+  <div class="max-w-6xl mx-auto">
+    <div class="flex justify-between items-center mb-6">
+      <div>
+        <h2 class="text-2xl font-bold text-green-800">营销管理</h2>
+        <p class="text-green-600 text-sm">Promotion Management</p>
+      </div>
+      <button class="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition">
+        <i class="fas fa-plus mr-2"></i>创建活动
+      </button>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- Activities -->
+      <div class="glass-card rounded-xl p-6">
+        <h4 class="text-green-800 font-bold mb-4"><i class="fas fa-bullhorn text-green-500 mr-2"></i>进行中的活动</h4>
+        <div class="space-y-4">
+          <div class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 border border-green-200">
+            <div class="flex justify-between items-start mb-2">
+              <div>
+                <p class="text-green-800 font-bold">🎉 满200减20</p>
+                <p class="text-green-500 text-sm">时间: 2026.05.01 - 2026.05.31</p>
+              </div>
+              <span class="px-2 py-1 bg-green-100 text-green-600 rounded-full text-xs">进行中</span>
+            </div>
+            <div class="flex gap-2">
+              <span class="px-2 py-1 bg-white text-green-600 rounded text-xs">满减</span>
+              <span class="text-green-500 text-sm">参与: 156件商品</span>
+            </div>
+          </div>
+          <div class="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-4 border border-purple-200">
+            <div class="flex justify-between items-start mb-2">
+              <div>
+                <p class="text-green-800 font-bold">✨ 新会员专享</p>
+                <p class="text-green-500 text-sm">时间: 长期有效</p>
+              </div>
+              <span class="px-2 py-1 bg-green-100 text-green-600 rounded-full text-xs">进行中</span>
+            </div>
+            <div class="flex gap-2">
+              <span class="px-2 py-1 bg-white text-green-600 rounded text-xs">新人券</span>
+              <span class="text-green-500 text-sm">已领取: 89张</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Coupons -->
+      <div class="glass-card rounded-xl p-6">
+        <h4 class="text-green-800 font-bold mb-4"><i class="fas fa-ticket text-green-500 mr-2"></i>优惠券管理</h4>
+        <div class="space-y-3">
+          <div class="flex items-center justify-between bg-green-50 rounded-xl p-4">
+            <div class="flex items-center gap-3">
+              <div class="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl flex items-center justify-center text-white font-bold">¥20</div>
+              <div>
+                <p class="text-green-800 font-semibold">满100减20券</p>
+                <p class="text-green-500 text-sm">剩余: 156张 / 200张</p>
+              </div>
+            </div>
+            <button class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">发放</button>
+          </div>
+          <div class="flex items-center justify-between bg-green-50 rounded-xl p-4">
+            <div class="flex items-center gap-3">
+              <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center text-white font-bold">8折</div>
+              <div>
+                <p class="text-green-800 font-semibold">全场8折券</p>
+                <p class="text-green-500 text-sm">剩余: 45张 / 100张</p>
+              </div>
+            </div>
+            <button class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">发放</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="flex justify-between items-center mt-10">
+      <a href="index.html" class="flex items-center gap-2 text-green-600 hover:text-green-800"><i class="fas fa-arrow-left"></i><span>返回导航</span></a>
+      <div class="flex gap-4">
+        <a href="09-members.html" class="text-green-600 hover:text-green-800">上一页</a>
+        <span class="text-green-400">|</span>
+        <a href="11-report.html" class="bg-green-500 text-white px-6 py-2 rounded-xl hover:bg-green-600">下一页</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

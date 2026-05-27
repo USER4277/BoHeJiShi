@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>薄荷市集 - 模块架构</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Noto Sans SC', -apple-system, sans-serif; }
+    body { background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 50%, #bbf7d0 100%); min-height: 100vh; }
+    .glass-card { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(20px); border: 1px solid rgba(34, 197, 94, 0.3); box-shadow: 0 8px 32px rgba(34, 197, 94, 0.15); }
+    .module-card { transition: all 0.3s ease; }
+    .module-card:hover { transform: translateY(-5px) scale(1.05); box-shadow: 0 15px 30px rgba(34, 197, 94, 0.2); }
+  </style>
+</head>
+<body class="p-8">
+  <div class="max-w-6xl mx-auto">
+    <!-- Header -->
+    <div class="text-center mb-8">
+      <div class="inline-flex items-center gap-3 mb-4">
+        <div class="w-12 h-12 bg-gradient-to-br from-green-400 to-emerald-500 rounded-xl flex items-center justify-center">
+          <i class="fas fa-leaf text-xl text-white"></i>
+        </div>
+        <h1 class="text-3xl font-bold text-green-800">薄荷市集</h1>
+      </div>
+      <h2 class="text-2xl font-bold text-green-700 mb-2">模块架构</h2>
+      <p class="text-green-600">Module Architecture - 功能模块分布图</p>
+    </div>
+
+    <!-- Main Modules Grid -->
+    <h3 class="text-xl font-bold text-green-700 mb-4">核心业务模块 (P0-P1)</h3>
+    <div class="grid grid-cols-3 md:grid-cols-6 gap-4 mb-6">
+      <div class="module-card glass-card rounded-xl p-4 text-center">
+        <div class="w-14 h-14 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl mx-auto mb-3 flex items-center justify-center">
+          <i class="fas fa-cog text-2xl text-white"></i>
+        </div>
+        <p class="text-green-800 font-semibold text-sm">系统管理</p>
+        <span class="text-xs px-2 py-1 bg-red-100 text-red-600 rounded-full">P0</span>
+      </div>
+      <div class="module-card glass-card rounded-xl p-4 text-center">
+        <div class="w-14 h-14 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-xl mx-auto mb-3 flex items-center justify-center">
+          <i class="fas fa-gem text-2xl text-white"></i>
+        </div>
+        <p class="text-green-800 font-semibold text-sm">商品管理</p>
+        <span class="text-xs px-2 py-1 bg-red-100 text-red-600 rounded-full">P0</span>
+      </div>
+      <div class="module-card glass-card rounded-xl p-4 text-center">
+        <div class="w-14 h-14 bg-gradient-to-br from-teal-400 to-teal-600 rounded-xl mx-auto mb-3 flex items-center justify-center">
+          <i class="fas fa-box text-2xl text-white"></i>
+        </div>
+        <p class="text-green-800 font-semibold text-sm">库存管理</p>
+        <span class="text-xs px-2 py-1 bg-red-100 text-red-600 rounded-full">P0</span>
+      </div>
+      <div class="module-card glass-card rounded-xl p-4 text-center">
+        <div class="w-14 h-14 bg-gradient-to-br from-green-400 to-green-600 rounded-xl mx-auto mb-3 flex items-center justify-center">
+          <i class="fas fa-chart-line text-2xl text-white"></i>
+        </div>
+        <p class="text-green-800 font-semibold text-sm">销售管理</p>
+        <span class="text-xs px-2 py-1 bg-red-100 text-red-600 rounded-full">P0</span>
+      </div>
+      <div class="module-card glass-card rounded-xl p-4 text-center">
+        <div class="w-14 h-14 bg-gradient-to-br from-violet-400 to-violet-600 rounded-xl mx-auto mb-3 flex items-center justify-center">
+          <i class="fas fa-user-tag text-2xl text-white"></i>
+        </div>
+        <p class="text-green-800 font-semibold text-sm">会员管理</p>
+        <span class="text-xs px-2 py-1 bg-orange-100 text-orange-600 rounded-full">P1</span>
+      </div>
+      <div class="module-card glass-card rounded-xl p-4 text-center">
+        <div class="w-14 h-14 bg-gradient-to-br from-pink-400 to-pink-600 rounded-xl mx-auto mb-3 flex items-center justify-center">
+          <i class="fas fa-bullhorn text-2xl text-white"></i>
+        </div>
+        <p class="text-green-800 font-semibold text-sm">营销管理</p>
+        <span class="text-xs px-2 py-1 bg-orange-100 text-orange-600 rounded-full">P1</span>
+      </div>
+    </div>
+
+    <!-- Secondary Modules -->
+    <h3 class="text-xl font-bold text-green-700 mb-4">辅助业务模块 (P1-P2)</h3>
+    <div class="grid grid-cols-3 md:grid-cols-4 gap-4">
+      <div class="module-card glass-card rounded-xl p-4 text-center">
+        <div class="w-14 h-14 bg-gradient-to-br from-amber-400 to-amber-600 rounded-xl mx-auto mb-3 flex items-center justify-center">
+          <i class="fas fa-file-invoice-dollar text-2xl text-white"></i>
+        </div>
+        <p class="text-green-800 font-semibold text-sm">财务报表</p>
+        <span class="text-xs px-2 py-1 bg-orange-100 text-orange-600 rounded-full">P1</span>
+      </div>
+      <div class="module-card glass-card rounded-xl p-4 text-center">
+        <div class="w-14 h-14 bg-gradient-to-br from-indigo-400 to-indigo-600 rounded-xl mx-auto mb-3 flex items-center justify-center">
+          <i class="fas fa-chart-pie text-2xl text-white"></i>
+        </div>
+        <p class="text-green-800 font-semibold text-sm">数据分析</p>
+        <span class="text-xs px-2 py-1 bg-orange-100 text-orange-600 rounded-full">P1</span>
+      </div>
+      <div class="module-card glass-card rounded-xl p-4 text-center">
+        <div class="w-14 h-14 bg-gradient-to-br from-cyan-400 to-cyan-600 rounded-xl mx-auto mb-3 flex items-center justify-center">
+          <i class="fas fa-shopping-bag text-2xl text-white"></i>
+        </div>
+        <p class="text-green-800 font-semibold text-sm">采购管理</p>
+        <span class="text-xs px-2 py-1 bg-green-100 text-green-600 rounded-full">P2</span>
+      </div>
+      <div class="module-card glass-card rounded-xl p-4 text-center">
+        <div class="w-14 h-14 bg-gradient-to-br from-gray-400 to-gray-600 rounded-xl mx-auto mb-3 flex items-center justify-center">
+          <i class="fas fa-warehouse text-2xl text-white"></i>
+        </div>
+        <p class="text-green-800 font-semibold text-sm">仓库管理</p>
+        <span class="text-xs px-2 py-1 bg-green-100 text-green-600 rounded-full">P2</span>
+      </div>
+    </div>
+
+    <!-- Priority Legend -->
+    <div class="mt-8 flex justify-center gap-6">
+      <div class="flex items-center gap-2">
+        <span class="w-4 h-4 bg-red-500 rounded-full"></span>
+        <span class="text-green-700">P0 核心功能</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="w-4 h-4 bg-orange-500 rounded-full"></span>
+        <span class="text-green-700">P1 重要功能</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="w-4 h-4 bg-green-500 rounded-full"></span>
+        <span class="text-green-700">P2 一般功能</span>
+      </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="flex justify-between items-center mt-10">
+      <a href="index.html" class="flex items-center gap-2 text-green-600 hover:text-green-800 transition">
+        <i class="fas fa-arrow-left"></i><span>返回导航</span>
+      </a>
+      <div class="flex gap-4">
+        <a href="02-overview.html" class="text-green-600 hover:text-green-800">上一页</a>
+        <span class="text-green-400">|</span>
+        <a href="04-login.html" class="bg-green-500 text-white px-6 py-2 rounded-xl hover:bg-green-600 transition">下一页</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

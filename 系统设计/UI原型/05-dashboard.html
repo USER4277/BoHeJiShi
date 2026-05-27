@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>薄荷市集 - 经营大屏</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Noto Sans SC', -apple-system, sans-serif; }
+    body { background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 50%, #bbf7d0 100%); min-height: 100vh; }
+    .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px); border: 1px solid rgba(34, 197, 94, 0.3); box-shadow: 0 8px 32px rgba(34, 197, 94, 0.15); }
+  </style>
+</head>
+<body class="p-8">
+  <div class="max-w-6xl mx-auto">
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-8">
+      <div class="flex items-center gap-3">
+        <div class="w-12 h-12 bg-gradient-to-br from-green-400 to-emerald-500 rounded-xl flex items-center justify-center">
+          <i class="fas fa-leaf text-xl text-white"></i>
+        </div>
+        <div>
+          <h1 class="text-2xl font-bold text-green-800">薄荷市集</h1>
+          <p class="text-green-600 text-sm">店铺管理系统</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-4">
+        <span class="text-green-600"><i class="fas fa-clock mr-1"></i>2026-05-27 14:50</span>
+        <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+          <i class="fas fa-user text-green-600"></i>
+        </div>
+      </div>
+    </div>
+
+    <h2 class="text-2xl font-bold text-green-700 mb-6">经营大屏</h2>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div class="glass-card rounded-xl p-4">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-green-500 text-sm">今日销售额</span>
+          <i class="fas fa-chart-line text-green-400"></i>
+        </div>
+        <p class="text-3xl font-bold text-green-800">¥12,580</p>
+        <p class="text-green-500 text-sm mt-1">↑ 15.8%</p>
+      </div>
+      <div class="glass-card rounded-xl p-4">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-blue-500 text-sm">今日订单</span>
+          <i class="fas fa-shopping-bag text-blue-400"></i>
+        </div>
+        <p class="text-3xl font-bold text-blue-800">86</p>
+        <p class="text-green-500 text-sm mt-1">↑ 8.2%</p>
+      </div>
+      <div class="glass-card rounded-xl p-4">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-purple-500 text-sm">客单价</span>
+          <i class="fas fa-user text-purple-400"></i>
+        </div>
+        <p class="text-3xl font-bold text-purple-800">¥146</p>
+        <p class="text-red-400 text-sm mt-1">↓ 2.3%</p>
+      </div>
+      <div class="glass-card rounded-xl p-4">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-orange-500 text-sm">新增会员</span>
+          <i class="fas fa-user-plus text-orange-400"></i>
+        </div>
+        <p class="text-3xl font-bold text-orange-800">12</p>
+        <p class="text-green-500 text-sm mt-1">↑ 25%</p>
+      </div>
+    </div>
+
+    <!-- Charts and Lists -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="glass-card rounded-xl p-4">
+        <h4 class="text-green-800 font-bold mb-4">销售趋势 (近7天)</h4>
+        <div class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl h-40 flex items-center justify-center">
+          <i class="fas fa-chart-area text-5xl text-green-300"></i>
+          <span class="ml-3 text-green-500">ECharts 折线图</span>
+        </div>
+      </div>
+      <div class="glass-card rounded-xl p-4">
+        <h4 class="text-green-800 font-bold mb-4">热销商品 TOP 5</h4>
+        <div class="space-y-3">
+          <div class="flex items-center justify-between bg-green-50 rounded-lg p-2">
+            <div class="flex items-center gap-3">
+              <span class="w-6 h-6 bg-yellow-400 text-white rounded-full flex items-center justify-center text-xs font-bold">1</span>
+              <span class="text-green-800 font-medium">纯银项链</span>
+            </div>
+            <span class="text-green-600 font-bold">86件</span>
+          </div>
+          <div class="flex items-center justify-between bg-green-50 rounded-lg p-2">
+            <div class="flex items-center gap-3">
+              <span class="w-6 h-6 bg-gray-400 text-white rounded-full flex items-center justify-center text-xs font-bold">2</span>
+              <span class="text-green-800 font-medium">开口戒指</span>
+            </div>
+            <span class="text-green-600 font-bold">72件</span>
+          </div>
+          <div class="flex items-center justify-between bg-green-50 rounded-lg p-2">
+            <div class="flex items-center gap-3">
+              <span class="w-6 h-6 bg-orange-400 text-white rounded-full flex items-center justify-center text-xs font-bold">3</span>
+              <span class="text-green-800 font-medium">珍珠耳钉</span>
+            </div>
+            <span class="text-green-600 font-bold">65件</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="flex justify-between items-center mt-10">
+      <a href="index.html" class="flex items-center gap-2 text-green-600 hover:text-green-800"><i class="fas fa-arrow-left"></i><span>返回导航</span></a>
+      <div class="flex gap-4">
+        <a href="04-login.html" class="text-green-600 hover:text-green-800">上一页</a>
+        <span class="text-green-400">|</span>
+        <a href="06-products.html" class="bg-green-500 text-white px-6 py-2 rounded-xl hover:bg-green-600">下一页</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
