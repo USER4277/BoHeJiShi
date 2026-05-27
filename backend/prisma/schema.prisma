@@ -1,0 +1,382 @@
+// Prisma Schema for 薄荷集市店铺管理系统
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:../data/shop.db"
+}
+
+// 用户表
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  password  String
+  realName  String?
+  role      String  @default("admin")
+  status    Int     @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders          Order[]
+  dailySettlements DailySettlement[]
+  operationLogs   OperationLog[]
+}
+
+// 商品分类
+model Category {
+  id        Int      @id @default(autoincrement())
+  parentId  Int      @default(0)
+  name      String
+  sort      Int      @default(0)
+  status    Int      @default(1)
+  createdAt DateTime @default(now())
+
+  products Product[]
+}
+
+// 品牌
+model Brand {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  logo      String?
+  status    Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products Product[]
+}
+
+// 属性模板
+model AttributeTemplate {
+  id        Int      @id @default(autoincrement())
+  name      String
+  categoryId Int?
+  values    String?
+  status    Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// 属性值
+model AttributeValue {
+  id        Int      @id @default(autoincrement())
+  templateId Int
+  name      String
+  sort      Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+// 商品
+model Product {
+  id            Int       @id @default(autoincrement())
+  code          String    @unique
+  name          String
+  categoryId    Int
+  brandId       Int?
+  material      String?
+  price         Float
+  memberPrice   Float?
+  costPrice     Float?
+  mainImage     String?
+  detailImages  String?
+  stockQuantity Int       @default(0)
+  status        Int       @default(1)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  category Category @relation(fields: [categoryId], references: [id])
+  brand    Brand?   @relation(fields: [brandId], references: [id])
+  skus     Sku[]
+}
+
+// SKU
+model Sku {
+  id            Int       @id @default(autoincrement())
+  productId     Int
+  skuCode       String    @unique
+  specs         String?
+  price         Float
+  stockQuantity Int       @default(0)
+  status        Int       @default(1)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  product       Product      @relation(fields: [productId], references: [id])
+  inventories   Inventory[]
+  orderItems    OrderItem[]
+  inventoryLogs InventoryLog[]
+}
+
+// 库存
+model Inventory {
+  id            Int       @id @default(autoincrement())
+  skuId         Int
+  warehouseId   Int       @default(1)
+  quantity      Int       @default(0)
+  safeQuantity  Int       @default(5)
+  lastInTime    DateTime?
+  lastOutTime   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  sku      Sku      @relation(fields: [skuId], references: [id])
+  @@unique([skuId, warehouseId])
+}
+
+// 库存变动记录
+model InventoryLog {
+  id              Int       @id @default(autoincrement())
+  skuId           Int
+  changeType      String
+  changeQuantity  Int
+  beforeQuantity  Int
+  afterQuantity   Int
+  billType        String?
+  billId          Int?
+  operatorId      Int?
+  remark          String?
+  createdAt       DateTime  @default(now())
+
+  sku Sku @relation(fields: [skuId], references: [id])
+}
+
+// 销售订单
+model Order {
+  id              Int       @id @default(autoincrement())
+  orderNo         String    @unique
+  memberId        Int?
+  cashierId       Int
+  totalQuantity   Int       @default(0)
+  totalAmount     Float
+  discountAmount  Float     @default(0)
+  payAmount       Float
+  payWay          String?
+  pointsEarned    Int       @default(0)
+  remark          String?
+  status          Int       @default(1)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  member  Member?     @relation(fields: [memberId], references: [id])
+  cashier User        @relation(fields: [cashierId], references: [id])
+  items   OrderItem[]
+  returns OrderReturn[]
+}
+
+// 订单明细
+model OrderItem {
+  id            Int       @id @default(autoincrement())
+  orderId       Int
+  skuId         Int
+  productName   String
+  quantity      Int
+  unitPrice     Float
+  amount        Float
+  createdAt     DateTime  @default(now())
+
+  order Order @relation(fields: [orderId], references: [id])
+  sku   Sku   @relation(fields: [skuId], references: [id])
+}
+
+// 退货单
+model OrderReturn {
+  id           Int       @id @default(autoincrement())
+  returnNo     String    @unique
+  orderId      Int
+  returnReason String?
+  returnAmount Float
+  status       Int       @default(0)
+  operatorId   Int?
+  createdAt    DateTime  @default(now())
+
+  order Order @relation(fields: [orderId], references: [id])
+}
+
+// 会员
+model Member {
+  id            Int       @id @default(autoincrement())
+  code          String    @unique
+  name          String
+  phone         String    @unique
+  gender        Int?
+  birthday      DateTime?
+  level         String    @default("normal")
+  points        Int       @default(0)
+  balance       Float     @default(0)
+  totalConsume  Float     @default(0)
+  status        Int       @default(1)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  orders       Order[]
+  pointsLogs   PointsLog[]
+  balanceLogs  BalanceLog[]
+}
+
+// 积分变动记录
+model PointsLog {
+  id          Int       @id @default(autoincrement())
+  memberId    Int
+  changeType  String
+  points      Int
+  balance     Int
+  source      String?
+  orderId     Int?
+  description String?
+  createdAt   DateTime  @default(now())
+
+  member Member @relation(fields: [memberId], references: [id])
+}
+
+// 储值变动记录
+model BalanceLog {
+  id          Int       @id @default(autoincrement())
+  memberId    Int
+  changeType  String
+  amount      Float
+  balance     Float
+  payWay      String?
+  orderId     Int?
+  description String?
+  createdAt   DateTime  @default(now())
+
+  member Member @relation(fields: [memberId], references: [id])
+}
+
+// 促销活动
+model Promotion {
+  id        Int       @id @default(autoincrement())
+  name      String
+  type      String
+  rules     String
+  startTime DateTime?
+  endTime   DateTime?
+  status    Int       @default(1)
+  createdAt DateTime  @default(now())
+}
+
+// 优惠券
+model Coupon {
+  id              Int       @id @default(autoincrement())
+  code            String    @unique
+  name            String
+  type            String
+  value           Float?
+  minAmount       Float?
+  quantity        Int
+  remainQuantity  Int
+  startTime       DateTime?
+  endTime         DateTime?
+  status          Int       @default(1)
+  createdAt       DateTime  @default(now())
+}
+
+// 盘点单
+model Stocktaking {
+  id           Int       @id @default(autoincrement())
+  stocktakingNo String   @unique
+  type         Int       @default(0) // 0=全盘, 1=抽盘
+  warehouseId  Int       @default(1)
+  status       Int       @default(0) // 0=草稿, 1=已完成
+  remark       String?
+  operatorId   Int?
+  auditorId    Int?
+  auditedAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  items StocktakingItem[]
+}
+
+// 盘点明细
+model StocktakingItem {
+  id              Int       @id @default(autoincrement())
+  stocktakingId   Int
+  skuId           Int
+  systemQuantity  Int       @default(0)
+  actualQuantity  Int       @default(0)
+  profitQuantity  Int       @default(0)
+  createdAt       DateTime  @default(now())
+
+  stocktaking Stocktaking @relation(fields: [stocktakingId], references: [id])
+}
+
+// 调拨单
+model Transfer {
+  id            Int       @id @default(autoincrement())
+  transferNo    String    @unique
+  fromWarehouse Int
+  toWarehouse   Int
+  status        Int       @default(0) // 0=草稿, 1=已出库, 2=已入库
+  remark        String?
+  operatorId    Int?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  items TransferItem[]
+}
+
+// 调拨明细
+model TransferItem {
+  id          Int       @id @default(autoincrement())
+  transferId  Int
+  skuId       Int
+  quantity    Int
+  createdAt   DateTime  @default(now())
+
+  transfer Transfer @relation(fields: [transferId], references: [id])
+}
+
+// 日结记录
+model DailySettlement {
+  id              Int       @id @default(autoincrement())
+  settlementDate  DateTime  @unique
+  salesCount      Int       @default(0)
+  salesAmount     Float     @default(0)
+  cashAmount      Float     @default(0)
+  wechatAmount    Float     @default(0)
+  alipayAmount    Float     @default(0)
+  refundCount     Int       @default(0)
+  refundAmount    Float     @default(0)
+  discountAmount  Float     @default(0)
+  status          Int       @default(0)
+  operatorId      Int?
+  createdAt       DateTime  @default(now())
+
+  operator User? @relation(fields: [operatorId], references: [id])
+}
+
+// 系统配置
+model Config {
+  id          Int       @id @default(autoincrement())
+  configKey   String    @unique
+  configValue String?
+  description String?
+  updatedAt   DateTime  @updatedAt
+}
+
+// 操作日志
+model OperationLog {
+  id          Int       @id @default(autoincrement())
+  userId      Int?
+  action      String
+  module      String?
+  detail      String?
+  ip          String?
+  createdAt   DateTime  @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+}
+
+// 挂单
+model OrderHold {
+  id        Int      @id @default(autoincrement())
+  holdNo    String   @unique
+  memberId  Int?
+  data      String
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+}
