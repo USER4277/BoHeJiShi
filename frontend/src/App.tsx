@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { ConfigProvider } from 'antd'
 import zhCN from 'antd/locale/zh_CN'
+import { antdTheme } from './theme/colors'
 import MainLayout from './pages/layout/MainLayout'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
@@ -33,7 +34,7 @@ function App() {
   const { isAuthenticated } = useAuthStore()
 
   return (
-    <ConfigProvider locale={zhCN}>
+    <ConfigProvider locale={zhCN} theme={antdTheme}>
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />

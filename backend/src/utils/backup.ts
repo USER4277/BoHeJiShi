@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import dayjs from 'dayjs';
 
 const DATA_DIR = path.join(os.homedir(), 'Documents', '薄荷集市', 'data');
 const BACKUP_DIR = path.join(DATA_DIR, 'backup');
@@ -53,6 +54,3 @@ function cleanupOldBackups(days: number): void {
     console.error('清理旧备份失败:', error);
   }
 }
-
-// 导入dayjs
-import dayjs from 'dayjs';

@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
-import { Tree, Button, Space, Modal, Form, Input, message, Popconfirm } from 'antd'
+import { Tree, Button, Space, Modal, Form, Input, message, Popconfirm, Card } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
 import { categoryApi } from '../../api/product'
+import PageContainer from '../../components/PageContainer'
+import { mintTheme } from '../../theme/colors'
 
 export default function CategoryList() {
   const [loading, setLoading] = useState(false)
@@ -69,29 +71,79 @@ export default function CategoryList() {
     return data.map(item => ({
       key: item.id,
       title: (
-        <Space>
-          <span>{item.name}</span>
-          <Button size="small" type="link" icon={<EditOutlined />} onClick={() => handleEdit(item)} />
-          <Popconfirm title="确定删除?" onConfirm={() => handleDelete(item.id)}>
-            <Button size="small" type="link" danger icon={<DeleteOutlined />} />
-          </Popconfirm>
-        </Space>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: '4px 0'
+        }}>
+          <span style={{
+            flex: 1,
+            color: mintTheme.primary[800],
+            fontWeight: 500
+          }}>
+            {item.name}
+          </span>
+          <Space size="small">
+            <Button
+              size="small"
+              type="link"
+              icon={<EditOutlined />}
+              onClick={() => handleEdit(item)}
+              style={{ color: '#3b82f6' }}
+            />
+            <Popconfirm title="确定删除?" onConfirm={() => handleDelete(item.id)}>
+              <Button
+                size="small"
+                type="link"
+                danger
+                icon={<DeleteOutlined />}
+              />
+            </Popconfirm>
+          </Space>
+        </div>
       ),
       children: item.children?.length > 0 ? renderTreeNodes(item.children) : undefined
     }))
   }
 
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-        <h1 style={{ fontSize: 20 }}>商品分类</h1>
-        <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>新增分类</Button>
-      </div>
-
-      <Tree
-        treeData={renderTreeNodes(data)}
-        selectable={false}
-      />
+    <PageContainer
+      title="商品分类"
+      subtitle="Category Management"
+      extra={
+        <Button
+          type="primary"
+          icon={<PlusOutlined />}
+          onClick={handleAdd}
+          size="large"
+          style={{
+            background: mintTheme.gradients.primary,
+            border: 'none',
+            borderRadius: mintTheme.borderRadius.lg,
+            fontWeight: 600,
+            boxShadow: '0 4px 12px rgba(34, 197, 94, 0.3)'
+          }}
+        >
+          新增分类
+        </Button>
+      }
+    >
+      <Card
+        style={{
+          ...mintTheme.glass,
+          borderRadius: mintTheme.borderRadius.xl,
+          border: `1px solid ${mintTheme.primary[200]}`
+        }}
+        bodyStyle={{ padding: 24 }}
+      >
+        <Tree
+          treeData={renderTreeNodes(data)}
+          selectable={false}
+          showLine
+          style={{ background: 'transparent' }}
+        />
+      </Card>
 
       <Modal
         title={editingId ? '编辑分类' : '新增分类'}
@@ -100,7 +152,7 @@ export default function CategoryList() {
         onCancel={() => setModalVisible(false)}
       >
         <Form form={form} layout="vertical">
-          <Form.Item name="name" label="分类名称" rules={[{ required: true }]}>
+          <Form.Item name="name" label="分类名称" rules={[{ required: true, message: '请输入分类名称' }]}>
             <Input placeholder="请输入分类名称" />
           </Form.Item>
           <Form.Item name="sort" label="排序" initialValue={0}>
@@ -108,6 +160,6 @@ export default function CategoryList() {
           </Form.Item>
         </Form>
       </Modal>
-    </div>
+    </PageContainer>
   )
 }
