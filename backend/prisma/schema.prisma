@@ -20,9 +20,10 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  orders          Order[]
+  orders           Order[]
   dailySettlements DailySettlement[]
-  operationLogs   OperationLog[]
+  operationLogs    OperationLog[]
+  manualAccounts   ManualAccount[]
 }
 
 // 商品分类
@@ -34,19 +35,43 @@ model Category {
   status    Int      @default(1)
   createdAt DateTime @default(now())
 
-  products Product[]
+  products  Product[]
+  brands    Brand[]
+  materials Material[]
 }
 
 // 品牌
 model Brand {
-  id        Int      @id @default(autoincrement())
-  name      String   @unique
-  logo      String?
-  status    Int      @default(1)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         Int      @id @default(autoincrement())
+  name       String
+  categoryId Int
+  logo       String?
+  sort       Int      @default(0)
+  status     Int      @default(1)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
+  category Category @relation(fields: [categoryId], references: [id])
   products Product[]
+
+  @@unique([name, categoryId])
+}
+
+// 材质
+model Material {
+  id          Int      @id @default(autoincrement())
+  name        String
+  categoryId  Int
+  description String?
+  sort        Int      @default(0)
+  status      Int      @default(1)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  category Category @relation(fields: [categoryId], references: [id])
+  products Product[]
+
+  @@unique([name, categoryId])
 }
 
 // 属性模板
@@ -76,7 +101,7 @@ model Product {
   name          String
   categoryId    Int
   brandId       Int?
-  material      String?
+  materialId    Int?
   price         Float
   memberPrice   Float?
   costPrice     Float?
@@ -87,8 +112,9 @@ model Product {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  category Category @relation(fields: [categoryId], references: [id])
-  brand    Brand?   @relation(fields: [brandId], references: [id])
+  category Category  @relation(fields: [categoryId], references: [id])
+  brand    Brand?    @relation(fields: [brandId], references: [id])
+  material Material? @relation(fields: [materialId], references: [id])
   skus     Sku[]
 }
 
@@ -155,6 +181,7 @@ model Order {
   payAmount       Float
   payWay          String?
   pointsEarned    Int       @default(0)
+  pointsUsed      Int       @default(0)
   remark          String?
   status          Int       @default(1)
   createdAt       DateTime  @default(now())
@@ -379,4 +406,36 @@ model OrderHold {
   data      String
   createdAt DateTime @default(now())
   expiresAt DateTime
+}
+
+// 手工账类型
+model ManualAccountType {
+  id          Int       @id @default(autoincrement())
+  name        String
+  category    String    // income=收入, expense=支出
+  description String?
+  sort        Int       @default(0)
+  status      Int       @default(1)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  records ManualAccount[]
+
+  @@unique([name, category])
+}
+
+// 手工账记录
+model ManualAccount {
+  id          Int       @id @default(autoincrement())
+  typeId      Int
+  amount      Float
+  payWay      String?   // cash=现金, wechat=微信, alipay=支付宝, card=银行卡
+  date        DateTime
+  description String?
+  operatorId  Int?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  type     ManualAccountType @relation(fields: [typeId], references: [id])
+  operator User?             @relation(fields: [operatorId], references: [id])
 }

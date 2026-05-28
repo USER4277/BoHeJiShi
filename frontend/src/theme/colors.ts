@@ -30,10 +30,11 @@ export const mintTheme = {
 
   // 渐变背景
   gradients: {
-    background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 50%, #bbf7d0 100%)',
+    background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 30%, #bbf7d0 60%, #d1fae5 100%)',
     primary: 'linear-gradient(135deg, #22c55e, #16a34a)',
     card: 'linear-gradient(135deg, #4ade80, #22c55e)',
     soft: 'linear-gradient(135deg, #f0fdf4, #dcfce7)',
+    page: 'linear-gradient(to bottom, #f0fdf4 0%, #e0f2fe 50%, #f0fdf4 100%)',
   },
 
   // 玻璃拟态效果

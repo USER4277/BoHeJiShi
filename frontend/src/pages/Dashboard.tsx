@@ -19,7 +19,8 @@ export default function Dashboard() {
     month: { sales: 0, count: 0 },
     newMembers: 0,
     inventoryWarnings: 0,
-    hotProducts: []
+    hotProducts: [],
+    refundLeaderboard: []
   })
 
   useEffect(() => {
@@ -135,6 +136,54 @@ export default function Dashboard() {
       render: (_: any, record: any) => (
         <span style={{ color: mintTheme.primary[600], fontWeight: 'bold' }}>
           {record._sum?.quantity || 0} 件
+        </span>
+      )
+    }
+  ]
+
+  const refundColumns = [
+    {
+      title: '排名',
+      key: 'rank',
+      width: 60,
+      render: (_: any, __: any, index: number) => (
+        <div style={{
+          width: 24,
+          height: 24,
+          borderRadius: '50%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: 12,
+          fontWeight: 'bold',
+          color: 'white',
+          background: '#ef4444'
+        }}>
+          {index + 1}
+        </div>
+      )
+    },
+    {
+      title: '订单号',
+      dataIndex: 'orderNo',
+      key: 'orderNo',
+      render: (text: string) => (
+        <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{text}</span>
+      )
+    },
+    {
+      title: '会员',
+      dataIndex: 'memberName',
+      key: 'memberName',
+    },
+    {
+      title: '退款金额',
+      dataIndex: 'returnAmount',
+      key: 'returnAmount',
+      align: 'right' as const,
+      render: (amount: number) => (
+        <span style={{ color: '#ef4444', fontWeight: 'bold' }}>
+          ¥{amount.toFixed(2)}
         </span>
       )
     }
@@ -314,6 +363,35 @@ export default function Dashboard() {
                 pagination={false}
                 size="middle"
                 rowClassName={(_, index) => index % 2 === 0 ? '' : 'bg-green-50'}
+              />
+            </Card>
+          </Col>
+        </Row>
+
+        {/* Refund Leaderboard */}
+        <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
+          <Col xs={24}>
+            <Card
+              title={
+                <span style={{
+                  color: '#ef4444',
+                  fontWeight: 'bold'
+                }}>
+                  本月退货榜单 TOP 5
+                </span>
+              }
+              style={{
+                ...statCardStyle,
+                borderColor: '#fecaca'
+              }}
+              bordered={false}
+            >
+              <Table
+                dataSource={data.refundLeaderboard}
+                columns={refundColumns}
+                pagination={false}
+                size="middle"
+                locale={{ emptyText: '暂无退货记录' }}
               />
             </Card>
           </Col>

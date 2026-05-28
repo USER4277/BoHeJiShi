@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Table, Card, Button, Space, Tag, Input, Modal, Form, message, Alert } from 'antd'
+import { Table, Card, Button, Space, Tag, Input, Modal, Form, message, Alert, Select } from 'antd'
 import { InboxOutlined, WarningOutlined, SearchOutlined, ExportOutlined } from '@ant-design/icons'
 import { inventoryApi } from '../../api/inventory'
 import { productApi } from '../../api/product'
@@ -9,20 +9,46 @@ import { mintTheme } from '../../theme/colors'
 export default function InventoryList() {
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState([])
+  const [filteredData, setFilteredData] = useState([])
   const [warnings, setWarnings] = useState([])
   const [modalVisible, setModalVisible] = useState(false)
   const [form] = Form.useForm()
   const [keyword, setKeyword] = useState('')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [categoryFilter, setCategoryFilter] = useState<number | undefined>(undefined)
+  const [categories, setCategories] = useState<any[]>([])
+  const [allProducts, setAllProducts] = useState<any[]>([])
 
   useEffect(() => {
     loadData()
+    loadAllProducts()
+    loadCategories()
   }, [])
+
+  const loadCategories = async () => {
+    try {
+      const res: any = await productApi.getCategories()
+      setCategories(res.data || [])
+    } catch (e) {
+      console.error('加载分类失败', e)
+    }
+  }
+
+  const loadAllProducts = async () => {
+    try {
+      const res: any = await productApi.getList({ page: 1, pageSize: 1000 })
+      setAllProducts(res.data.list)
+    } catch (e) {
+      console.error('加载商品列表失败', e)
+    }
+  }
 
   const loadData = async () => {
     setLoading(true)
     try {
       const res: any = await inventoryApi.getList()
       setData(res.data)
+      setFilteredData(res.data)
       const warnRes: any = await inventoryApi.getWarnings()
       setWarnings(warnRes.data)
     } catch (e) {
@@ -30,6 +56,40 @@ export default function InventoryList() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleSearch = () => {
+    let result = [...data]
+
+    // 关键词搜索
+    if (keyword) {
+      result = result.filter((item: any) => {
+        const productName = item.sku?.product?.name || ''
+        const skuCode = item.sku?.skuCode || ''
+        return productName.includes(keyword) || skuCode.includes(keyword)
+      })
+    }
+
+    // 分类筛选
+    if (categoryFilter) {
+      result = result.filter((item: any) => item.sku?.product?.categoryId === categoryFilter)
+    }
+
+    // 状态筛选
+    if (statusFilter === 'low') {
+      result = result.filter((item: any) => item.quantity < item.safeQuantity)
+    } else if (statusFilter === 'normal') {
+      result = result.filter((item: any) => item.quantity >= item.safeQuantity)
+    }
+
+    setFilteredData(result)
+  }
+
+  const handleReset = () => {
+    setKeyword('')
+    setStatusFilter('all')
+    setCategoryFilter(undefined)
+    setFilteredData(data)
   }
 
   const handleIn = () => {
@@ -158,6 +218,64 @@ export default function InventoryList() {
         />
       )}
 
+      {/* 搜索条件 */}
+      <Card
+        style={{
+          marginBottom: 16,
+          borderRadius: mintTheme.borderRadius.lg,
+          border: `1px solid ${mintTheme.primary[200]}`
+        }}
+      >
+        <Space size="middle" wrap>
+          <Input
+            placeholder="搜索商品名称或SKU编码"
+            prefix={<SearchOutlined />}
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+            onPressEnter={handleSearch}
+            style={{ width: 260 }}
+            allowClear
+          />
+          <Select
+            placeholder="选择分类"
+            value={categoryFilter}
+            onChange={setCategoryFilter}
+            style={{ width: 150 }}
+            allowClear
+          >
+            {categories.map((cat: any) => (
+              <Select.Option key={cat.id} value={cat.id}>
+                {cat.name}
+              </Select.Option>
+            ))}
+          </Select>
+          <Select
+            value={statusFilter}
+            onChange={setStatusFilter}
+            style={{ width: 150 }}
+            options={[
+              { label: '全部状态', value: 'all' },
+              { label: '库存正常', value: 'normal' },
+              { label: '库存不足', value: 'low' }
+            ]}
+          />
+          <Button
+            type="primary"
+            icon={<SearchOutlined />}
+            onClick={handleSearch}
+            style={{
+              background: mintTheme.gradients.primary,
+              border: 'none'
+            }}
+          >
+            搜索
+          </Button>
+          <Button onClick={handleReset}>
+            重置
+          </Button>
+        </Space>
+      </Card>
+
       <Card
         style={{
           ...mintTheme.glass,
@@ -167,7 +285,7 @@ export default function InventoryList() {
         bodyStyle={{ padding: 0 }}
       >
         <Table
-          dataSource={data}
+          dataSource={filteredData}
           columns={columns}
           loading={loading}
           rowKey="id"
@@ -186,11 +304,31 @@ export default function InventoryList() {
         open={modalVisible}
         onOk={handleSubmit}
         onCancel={() => setModalVisible(false)}
+        width={600}
       >
         <Form form={form} layout="vertical">
           <Form.Item name="type" hidden />
-          <Form.Item name="skuId" label="商品SKU" rules={[{ required: true, message: '请输入SKU ID' }]}>
-            <Input type="number" placeholder="请输入SKU ID" />
+          <Form.Item
+            name="skuId"
+            label="选择商品"
+            rules={[{ required: true, message: '请选择商品' }]}
+            extra="选择要入库/出库的商品SKU"
+          >
+            <Select
+              showSearch
+              placeholder="搜索商品名称或SKU编码"
+              optionFilterProp="children"
+              filterOption={(input, option: any) =>
+                (option?.label || '').toLowerCase().includes(input.toLowerCase())
+              }
+              style={{ width: '100%' }}
+              options={allProducts.flatMap((product: any) =>
+                (product.skus || []).map((sku: any) => ({
+                  label: `${product.name} - ${sku.skuCode} (${sku.specs || '默认规格'})`,
+                  value: sku.id
+                }))
+              )}
+            />
           </Form.Item>
           <Form.Item name="quantity" label="数量" rules={[{ required: true, message: '请输入数量' }]}>
             <Input type="number" placeholder="请输入数量" min={1} />

@@ -59,27 +59,62 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// 验证手机号格式
+function validatePhone(phone: string): boolean {
+  const phoneRegex = /^1[3-9]\d{9}$/;
+  if (!phoneRegex.test(phone)) {
+    return false;
+  }
+  // 检查是否全是相同数字
+  if (/^(\d)\1{10}$/.test(phone)) {
+    return false;
+  }
+  return true;
+}
+
 // 新增会员
 router.post('/', async (req, res) => {
   try {
     const { name, phone, gender, birthday } = req.body;
-    
+
     if (!name || !phone) {
       return error(res, 400, '请填写必填项');
     }
-    
+
+    // 验证手机号格式
+    if (!validatePhone(phone)) {
+      return error(res, 400, '手机号格式不正确，必须是1开头的11位数字');
+    }
+
     // 检查手机号是否已存在
     const existMember = await prisma.member.findUnique({ where: { phone } });
     if (existMember) {
       return error(res, 400, '手机号已被注册');
     }
-    
+
     const code = generateMemberCode();
-    
+
+    // 处理数据类型
+    const data: any = {
+      code,
+      name,
+      phone
+    };
+
+    // 处理可选字段
+    if (gender !== undefined && gender !== null && gender !== '') {
+      data.gender = parseInt(gender);
+    }
+
+    if (birthday && birthday !== '') {
+      // 将日期字符串转换为 DateTime 对象
+      data.birthday = new Date(birthday);
+    }
+
     const member = await prisma.member.create({
-      data: { code, name, phone, gender, birthday }
+      data
     });
-    
+
     success(res, member, '创建成功');
   } catch (err) {
     console.error('创建会员失败:', err);
@@ -91,12 +126,39 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { name, phone, gender, birthday, level, status } = req.body;
-    
+
+    // 如果更新手机号，验证格式
+    if (phone && !validatePhone(phone)) {
+      return error(res, 400, '手机号格式不正确，必须是1开头的11位数字');
+    }
+
+    // 准备更新数据
+    const data: any = {};
+
+    if (name !== undefined) data.name = name;
+    if (phone !== undefined) data.phone = phone;
+    if (level !== undefined) data.level = level;
+    if (status !== undefined) data.status = parseInt(status);
+
+    // 处理 gender
+    if (gender !== undefined && gender !== null && gender !== '') {
+      data.gender = parseInt(gender);
+    }
+
+    // 处理 birthday
+    if (birthday !== undefined) {
+      if (birthday === '' || birthday === null) {
+        data.birthday = null;
+      } else {
+        data.birthday = new Date(birthday);
+      }
+    }
+
     const member = await prisma.member.update({
       where: { id: parseInt(req.params.id) },
-      data: { name, phone, gender, birthday, level, status }
+      data
     });
-    
+
     success(res, member, '更新成功');
   } catch (err) {
     console.error('更新会员失败:', err);

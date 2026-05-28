@@ -1,15 +1,19 @@
 import { useState, useEffect } from 'react'
-import { Table, Button, Space, Input, Tag, Popconfirm, message, Card, Select } from 'antd'
-import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons'
+import { Table, Button, Space, Input, Tag, Popconfirm, message, Card, Select, Row, Col, Image, Segmented } from 'antd'
+import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, AppstoreOutlined, UnorderedListOutlined, EyeOutlined } from '@ant-design/icons'
+import { useNavigate } from 'react-router-dom'
 import { productApi } from '../../api/product'
 import { mintTheme } from '../../theme/colors'
+import PageContainer from '../../components/PageContainer'
 
 export default function ProductList() {
+  const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [keyword, setKeyword] = useState('')
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list')
 
   useEffect(() => {
     loadData()
@@ -18,7 +22,7 @@ export default function ProductList() {
   const loadData = async () => {
     setLoading(true)
     try {
-      const res: any = await productApi.getList({ page, pageSize: 20 })
+      const res: any = await productApi.getList({ page, pageSize: 20, keyword })
       setData(res.data.list)
       setTotal(res.data.total)
     } catch (e) {
@@ -26,6 +30,11 @@ export default function ProductList() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleSearch = () => {
+    setPage(1)
+    loadData()
   }
 
   const handleDelete = async (id: number) => {
@@ -39,6 +48,22 @@ export default function ProductList() {
   }
 
   const columns = [
+    {
+      title: '商品图片',
+      dataIndex: 'mainImage',
+      key: 'mainImage',
+      width: 80,
+      render: (img: string) => (
+        <Image
+          src={img || 'https://via.placeholder.com/60'}
+          width={60}
+          height={60}
+          style={{ borderRadius: 8, objectFit: 'cover' }}
+          preview={!!img}
+          fallback="https://via.placeholder.com/60?text=No+Image"
+        />
+      )
+    },
     {
       title: '编码',
       dataIndex: 'code',
@@ -73,13 +98,41 @@ export default function ProductList() {
       )
     },
     {
+      title: '品牌',
+      dataIndex: 'brand',
+      key: 'brand',
+      render: (brand: any) => brand?.name || '-'
+    },
+    {
+      title: '材质',
+      dataIndex: 'material',
+      key: 'material',
+      render: (material: any) => material?.name || '-'
+    },
+    {
       title: '吊牌价',
       dataIndex: 'price',
       key: 'price',
       align: 'right' as const,
-      render: (p: number) => (
-        <span style={{ color: mintTheme.primary[800], fontWeight: 'bold' }}>¥{p}</span>
-      )
+      render: (val: number) => `¥${val.toFixed(2)}`
+    },
+    {
+      title: '会员价',
+      dataIndex: 'memberPrice',
+      key: 'memberPrice',
+      align: 'right' as const,
+      render: (val: number) => val ? `¥${val.toFixed(2)}` : '-'
+    },
+    {
+      title: '成本价',
+      dataIndex: 'costPrice',
+      key: 'costPrice',
+      align: 'right' as const,
+      render: (val: number) => val ? (
+        <span style={{ color: '#f97316', fontWeight: 500 }}>
+          ¥{val.toFixed(2)}
+        </span>
+      ) : '-'
     },
     {
       title: '库存',
@@ -87,11 +140,8 @@ export default function ProductList() {
       key: 'stockQuantity',
       align: 'right' as const,
       render: (qty: number) => (
-        <span style={{
-          color: qty < 10 ? '#f97316' : mintTheme.primary[600],
-          fontWeight: qty < 10 ? 'bold' : 'normal'
-        }}>
-          {qty} {qty < 10 && '⚠️'}
+        <span style={{ color: qty > 0 ? mintTheme.primary[600] : '#ef4444', fontWeight: 500 }}>
+          {qty}
         </span>
       )
     },
@@ -100,146 +150,272 @@ export default function ProductList() {
       dataIndex: 'status',
       key: 'status',
       align: 'center' as const,
-      render: (s: number) => (
-        <Tag
-          color={s === 1 ? 'success' : 'error'}
-          style={{
-            borderRadius: mintTheme.borderRadius.md,
-            padding: '4px 12px'
-          }}
-        >
-          {s === 1 ? '上架' : '下架'}
+      render: (status: number) => (
+        <Tag color={status === 1 ? 'success' : 'error'}>
+          {status === 1 ? '上架' : '下架'}
         </Tag>
-      )
-    },
-    {
-      title: '创建时间',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-      render: (d: string) => (
-        <span style={{ color: '#6b7280' }}>
-          {new Date(d).toLocaleDateString('zh-CN')}
-        </span>
       )
     },
     {
       title: '操作',
       key: 'action',
-      align: 'center' as const,
-      width: 120,
+      width: 180,
       render: (_: any, record: any) => (
-        <Space>
+        <Space size="small">
           <Button
-            size="small"
             type="link"
-            icon={<EditOutlined />}
-            style={{ color: '#3b82f6' }}
+            size="small"
+            icon={<EyeOutlined />}
+            onClick={() => navigate(`/products/${record.id}`)}
           >
+            详情
           </Button>
-          <Popconfirm title="确定删除?" onConfirm={() => handleDelete(record.id)}>
+          <Button
+            type="link"
+            size="small"
+            icon={<EditOutlined />}
+            onClick={() => navigate(`/products/${record.id}/edit`)}
+          >
+            编辑
+          </Button>
+          <Popconfirm
+            title="确定要删除这个商品吗？"
+            onConfirm={() => handleDelete(record.id)}
+            okText="确定"
+            cancelText="取消"
+          >
             <Button
-              size="small"
               type="link"
+              size="small"
               danger
               icon={<DeleteOutlined />}
-            />
+            >
+              删除
+            </Button>
           </Popconfirm>
         </Space>
       )
     }
   ]
 
-  return (
-    <div style={{
-      background: mintTheme.gradients.soft,
-      minHeight: 'calc(100vh - 64px)',
-      padding: 24
-    }}>
-      <div style={{ maxWidth: 1400, margin: '0 auto' }}>
-        {/* Header */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: 24
-        }}>
-          <div>
-            <h1 style={{
-              fontSize: 28,
-              fontWeight: 'bold',
-              color: mintTheme.primary[800],
-              margin: 0
-            }}>
-              商品管理
-            </h1>
-            <p style={{ color: mintTheme.primary[600], fontSize: 14, margin: '4px 0 0 0' }}>
-              Product Management
-            </p>
-          </div>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            size="large"
+  // 卡片视图渲染
+  const renderGridView = () => (
+    <Row gutter={[16, 16]}>
+      {data.map((product: any) => (
+        <Col key={product.id} xs={24} sm={12} md={8} lg={6} xl={4}>
+          <Card
+            hoverable
             style={{
-              background: mintTheme.gradients.primary,
-              border: 'none',
               borderRadius: mintTheme.borderRadius.lg,
-              fontWeight: 600,
-              boxShadow: '0 4px 12px rgba(34, 197, 94, 0.3)'
+              border: `1px solid ${mintTheme.primary[200]}`,
+              overflow: 'hidden'
             }}
+            bodyStyle={{ padding: 12 }}
+            cover={
+              <div style={{
+                width: '100%',
+                paddingTop: '100%',
+                position: 'relative',
+                background: '#f5f5f5'
+              }}>
+                <img
+                  src={product.mainImage || 'https://via.placeholder.com/200?text=No+Image'}
+                  alt={product.name}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover'
+                  }}
+                  onError={(e: any) => {
+                    e.target.src = 'https://via.placeholder.com/200?text=No+Image'
+                  }}
+                />
+                {product.stockQuantity === 0 && (
+                  <div style={{
+                    position: 'absolute',
+                    top: 8,
+                    right: 8,
+                    background: '#ef4444',
+                    color: 'white',
+                    padding: '2px 8px',
+                    borderRadius: 4,
+                    fontSize: 12
+                  }}>
+                    缺货
+                  </div>
+                )}
+              </div>
+            }
           >
-            新增商品
-          </Button>
-        </div>
+            <div style={{ marginBottom: 8 }}>
+              <div style={{
+                fontSize: 14,
+                fontWeight: 500,
+                color: mintTheme.primary[800],
+                marginBottom: 4,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap'
+              }} title={product.name}>
+                {product.name}
+              </div>
+              <div style={{
+                fontSize: 12,
+                color: '#6b7280',
+                marginBottom: 4
+              }}>
+                {product.code}
+              </div>
+              <div style={{ marginBottom: 4 }}>
+                <Tag color="blue" style={{ fontSize: 11 }}>
+                  {product.category?.name}
+                </Tag>
+              </div>
+            </div>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 8
+            }}>
+              <div>
+                <div style={{
+                  fontSize: 16,
+                  fontWeight: 'bold',
+                  color: '#ef4444'
+                }}>
+                  ¥{product.price.toFixed(2)}
+                </div>
+                {product.memberPrice && (
+                  <div style={{
+                    fontSize: 12,
+                    color: '#6b7280'
+                  }}>
+                    会员 ¥{product.memberPrice.toFixed(2)}
+                  </div>
+                )}
+                {product.costPrice && (
+                  <div style={{
+                    fontSize: 11,
+                    color: '#f97316',
+                    fontWeight: 500
+                  }}>
+                    成本 ¥{product.costPrice.toFixed(2)}
+                  </div>
+                )}
+              </div>
+              <div style={{
+                fontSize: 12,
+                color: mintTheme.primary[600]
+              }}>
+                库存 {product.stockQuantity}
+              </div>
+            </div>
+            <Space size="small" style={{ width: '100%', justifyContent: 'space-between' }}>
+              <Button
+                type="primary"
+                size="small"
+                icon={<EyeOutlined />}
+                onClick={() => navigate(`/products/${product.id}`)}
+                style={{ flex: 1 }}
+              >
+                详情
+              </Button>
+              <Button
+                size="small"
+                icon={<EditOutlined />}
+                onClick={() => navigate(`/products/${product.id}/edit`)}
+              >
+                编辑
+              </Button>
+              <Popconfirm
+                title="确定删除？"
+                onConfirm={() => handleDelete(product.id)}
+                okText="确定"
+                cancelText="取消"
+              >
+                <Button
+                  size="small"
+                  danger
+                  icon={<DeleteOutlined />}
+                />
+              </Popconfirm>
+            </Space>
+          </Card>
+        </Col>
+      ))}
+    </Row>
+  )
 
-        {/* Filters */}
-        <Card
+  return (
+    <PageContainer
+      title="商品管理"
+      subtitle="Product Management"
+      extra={
+        <Button
+          type="primary"
+          icon={<PlusOutlined />}
+          onClick={() => navigate('/products/new')}
+          size="large"
           style={{
-            ...mintTheme.glass,
-            borderRadius: mintTheme.borderRadius.xl,
-            marginBottom: 16,
-            border: `1px solid ${mintTheme.primary[200]}`
+            background: mintTheme.gradients.primary,
+            border: 'none',
+            borderRadius: mintTheme.borderRadius.lg
           }}
-          bodyStyle={{ padding: 16 }}
         >
-          <Space size="middle" wrap>
+          新增商品
+        </Button>
+      }
+    >
+      {/* 搜索和视图切换 */}
+      <Card style={{ marginBottom: 16, borderRadius: mintTheme.borderRadius.lg }}>
+        <Space size="middle" style={{ width: '100%', justifyContent: 'space-between' }}>
+          <Space size="middle">
             <Input
-              placeholder="搜索商品..."
+              placeholder="搜索商品名称或编码"
               prefix={<SearchOutlined />}
               value={keyword}
-              onChange={e => setKeyword(e.target.value)}
+              onChange={(e) => setKeyword(e.target.value)}
+              onPressEnter={handleSearch}
+              style={{ width: 260 }}
+              allowClear
+            />
+            <Button
+              type="primary"
+              icon={<SearchOutlined />}
+              onClick={handleSearch}
               style={{
-                width: 240,
-                borderRadius: mintTheme.borderRadius.lg,
-                border: `2px solid ${mintTheme.primary[200]}`
+                background: mintTheme.gradients.primary,
+                border: 'none'
               }}
-              size="large"
-            />
-            <Select
-              placeholder="全部分类"
-              style={{ width: 160 }}
-              size="large"
-              options={[
-                { label: '全部分类', value: '' },
-                { label: '戒指', value: 'ring' },
-                { label: '项链', value: 'necklace' },
-                { label: '耳饰', value: 'earring' },
-              ]}
-            />
-            <Select
-              placeholder="全部状态"
-              style={{ width: 160 }}
-              size="large"
-              options={[
-                { label: '全部状态', value: '' },
-                { label: '上架', value: '1' },
-                { label: '下架', value: '0' },
-              ]}
-            />
+            >
+              搜索
+            </Button>
           </Space>
-        </Card>
+          <Segmented
+            value={viewMode}
+            onChange={(value) => setViewMode(value as 'list' | 'grid')}
+            options={[
+              {
+                label: '列表视图',
+                value: 'list',
+                icon: <UnorderedListOutlined />
+              },
+              {
+                label: '卡片视图',
+                value: 'grid',
+                icon: <AppstoreOutlined />
+              }
+            ]}
+          />
+        </Space>
+      </Card>
 
-        {/* Table */}
+      {/* 内容区域 */}
+      {viewMode === 'list' ? (
         <Card
           style={{
             ...mintTheme.glass,
@@ -256,20 +432,48 @@ export default function ProductList() {
             pagination={{
               current: page,
               total,
+              pageSize: 20,
               onChange: setPage,
               showTotal: (total) => (
                 <span style={{ color: mintTheme.primary[600] }}>共 {total} 条记录</span>
               ),
-              showSizeChanger: true,
-              pageSizeOptions: ['10', '20', '50', '100']
-            }}
-            style={{
-              borderRadius: mintTheme.borderRadius.xl,
-              overflow: 'hidden'
+              showSizeChanger: false
             }}
           />
         </Card>
-      </div>
-    </div>
+      ) : (
+        <Card
+          loading={loading}
+          style={{
+            ...mintTheme.glass,
+            borderRadius: mintTheme.borderRadius.xl,
+            border: `1px solid ${mintTheme.primary[200]}`
+          }}
+        >
+          {renderGridView()}
+          {total > 20 && (
+            <div style={{ marginTop: 24, textAlign: 'center' }}>
+              <Space>
+                <Button
+                  disabled={page === 1}
+                  onClick={() => setPage(page - 1)}
+                >
+                  上一页
+                </Button>
+                <span style={{ color: mintTheme.primary[600] }}>
+                  第 {page} 页，共 {Math.ceil(total / 20)} 页
+                </span>
+                <Button
+                  disabled={page >= Math.ceil(total / 20)}
+                  onClick={() => setPage(page + 1)}
+                >
+                  下一页
+                </Button>
+              </Space>
+            </div>
+          )}
+        </Card>
+      )}
+    </PageContainer>
   )
 }

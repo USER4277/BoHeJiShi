@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
-import { Table, Button, Space, Input, Tag, Modal, Form, message, Card, Select, Radio } from 'antd'
+import { Table, Button, Space, Input, Tag, Modal, Form, message, Card, Select, Radio, DatePicker } from 'antd'
 import { PlusOutlined, SearchOutlined, UserOutlined, EyeOutlined } from '@ant-design/icons'
 import { memberApi } from '../../api/member'
 import { useNavigate } from 'react-router-dom'
 import PageContainer from '../../components/PageContainer'
 import { mintTheme } from '../../theme/colors'
+import dayjs from 'dayjs'
 
 export default function MemberList() {
   const [loading, setLoading] = useState(false)
@@ -53,6 +54,12 @@ export default function MemberList() {
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields()
+
+      // 处理 birthday 字段
+      if (values.birthday) {
+        values.birthday = values.birthday.format('YYYY-MM-DD')
+      }
+
       await memberApi.create(values)
       message.success('创建成功')
       setModalVisible(false)
@@ -250,10 +257,35 @@ export default function MemberList() {
             label="手机号"
             rules={[
               { required: true, message: '请输入手机号' },
-              { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号' }
+              {
+                pattern: /^1[3-9]\d{9}$/,
+                message: '请输入正确的11位手机号码'
+              },
+              {
+                validator: (_, value) => {
+                  if (!value) return Promise.resolve()
+                  // 验证手机号格式
+                  if (!/^1[3-9]\d{9}$/.test(value)) {
+                    return Promise.reject(new Error('手机号格式不正确，必须是1开头的11位数字'))
+                  }
+                  // 验证是否全是相同数字
+                  if (/^(\d)\1{10}$/.test(value)) {
+                    return Promise.reject(new Error('手机号格式不正确'))
+                  }
+                  return Promise.resolve()
+                }
+              }
             ]}
           >
-            <Input placeholder="请输入11位手机号" maxLength={11} />
+            <Input
+              placeholder="请输入11位手机号"
+              maxLength={11}
+              onChange={(e) => {
+                // 只允许输入数字
+                const value = e.target.value.replace(/\D/g, '')
+                form.setFieldValue('phone', value)
+              }}
+            />
           </Form.Item>
           <Form.Item name="gender" label="性别">
             <Radio.Group>
@@ -262,7 +294,11 @@ export default function MemberList() {
             </Radio.Group>
           </Form.Item>
           <Form.Item name="birthday" label="生日">
-            <Input type="date" />
+            <DatePicker
+              style={{ width: '100%' }}
+              placeholder="请选择生日"
+              format="YYYY-MM-DD"
+            />
           </Form.Item>
         </Form>
       </Modal>

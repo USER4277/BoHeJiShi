@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Card, Descriptions, Table, Button, Space, Tag, Modal, Form, Input, InputNumber, message, Tabs } from 'antd'
-import { ArrowLeftOutlined, PoundOutlined, GiftOutlined, HistoryOutlined } from '@ant-design/icons'
+import { Card, Descriptions, Table, Button, Space, Tag, Modal, Form, Input, InputNumber, message, Tabs, Radio, DatePicker, Select } from 'antd'
+import { ArrowLeftOutlined, PoundOutlined, GiftOutlined, HistoryOutlined, EditOutlined } from '@ant-design/icons'
 import { useNavigate, useParams } from 'react-router-dom'
 import { memberApi } from '../../api/member'
 import dayjs from 'dayjs'
@@ -13,7 +13,9 @@ export default function MemberDetail() {
   const [balanceLogs, setBalanceLogs] = useState<any[]>([])
   const [rechargeModalVisible, setRechargeModalVisible] = useState(false)
   const [pointsModalVisible, setPointsModalVisible] = useState(false)
+  const [editModalVisible, setEditModalVisible] = useState(false)
   const [form] = Form.useForm()
+  const [editForm] = Form.useForm()
 
   const levelNames = ['普通', '银卡', '金卡', '钻石']
   const levelColors = ['', 'default', 'silver', 'gold', 'gold']
@@ -64,6 +66,36 @@ export default function MemberDetail() {
       loadPointsLogs()
     } catch (e: any) {
       message.error(e.message || '调整失败')
+    }
+  }
+
+  const handleEdit = () => {
+    editForm.setFieldsValue({
+      name: member.name,
+      phone: member.phone,
+      gender: member.gender,
+      birthday: member.birthday ? dayjs(member.birthday) : null,
+      level: member.level,
+      status: member.status
+    })
+    setEditModalVisible(true)
+  }
+
+  const handleEditSubmit = async () => {
+    try {
+      const values = await editForm.validateFields()
+
+      // 处理 birthday 字段
+      if (values.birthday) {
+        values.birthday = values.birthday.format('YYYY-MM-DD')
+      }
+
+      await memberApi.update(parseInt(id!), values)
+      message.success('更新成功')
+      setEditModalVisible(false)
+      loadData()
+    } catch (e: any) {
+      message.error(e.message || '更新失败')
     }
   }
 
@@ -120,6 +152,9 @@ export default function MemberDetail() {
         
         <div style={{ marginTop: 16 }}>
           <Space>
+            <Button icon={<EditOutlined />} onClick={handleEdit}>
+              编辑信息
+            </Button>
             <Button type="primary" icon={<PoundOutlined />} onClick={() => setRechargeModalVisible(true)}>
               储值充值
             </Button>
@@ -171,6 +206,87 @@ export default function MemberDetail() {
           <div style={{ color: '#999', fontSize: 12 }}>
             充值金额将直接添加到会员储值余额中
           </div>
+        </Form>
+      </Modal>
+
+      {/* 编辑信息弹窗 */}
+      <Modal
+        title="编辑会员信息"
+        open={editModalVisible}
+        onOk={handleEditSubmit}
+        onCancel={() => setEditModalVisible(false)}
+        width={600}
+      >
+        <Form form={editForm} layout="vertical">
+          <Form.Item
+            name="name"
+            label="姓名"
+            rules={[{ required: true, message: '请输入姓名' }]}
+          >
+            <Input placeholder="请输入会员姓名" />
+          </Form.Item>
+          <Form.Item
+            name="phone"
+            label="手机号"
+            rules={[
+              { required: true, message: '请输入手机号' },
+              {
+                pattern: /^1[3-9]\d{9}$/,
+                message: '请输入正确的11位手机号码'
+              },
+              {
+                validator: (_, value) => {
+                  if (!value) return Promise.resolve()
+                  // 验证手机号格式
+                  if (!/^1[3-9]\d{9}$/.test(value)) {
+                    return Promise.reject(new Error('手机号格式不正确，必须是1开头的11位数字'))
+                  }
+                  // 验证是否全是相同数字
+                  if (/^(\d)\1{10}$/.test(value)) {
+                    return Promise.reject(new Error('手机号格式不正确'))
+                  }
+                  return Promise.resolve()
+                }
+              }
+            ]}
+          >
+            <Input
+              placeholder="请输入11位手机号"
+              maxLength={11}
+              onChange={(e) => {
+                // 只允许输入数字
+                const value = e.target.value.replace(/\D/g, '')
+                editForm.setFieldValue('phone', value)
+              }}
+            />
+          </Form.Item>
+          <Form.Item name="gender" label="性别">
+            <Radio.Group>
+              <Radio value={1}>男</Radio>
+              <Radio value={2}>女</Radio>
+            </Radio.Group>
+          </Form.Item>
+          <Form.Item name="birthday" label="生日">
+            <DatePicker
+              style={{ width: '100%' }}
+              placeholder="请选择生日"
+              format="YYYY-MM-DD"
+            />
+          </Form.Item>
+          <Form.Item name="level" label="会员等级">
+            <Select>
+              <Select.Option value="normal">普通会员</Select.Option>
+              <Select.Option value="silver">银卡会员</Select.Option>
+              <Select.Option value="gold">金卡会员</Select.Option>
+              <Select.Option value="diamond">钻石会员</Select.Option>
+            </Select>
+          </Form.Item>
+          <Form.Item name="status" label="状态">
+            <Radio.Group>
+              <Radio value={1}>正常</Radio>
+              <Radio value={0}>停用</Radio>
+            </Radio.Group>
+          </Form.Item>
         </Form>
       </Modal>
 

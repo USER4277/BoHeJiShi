@@ -45,21 +45,62 @@ router.get('/dashboard', async (req, res) => {
     
     const warnings = inventories.filter((inv: any) => inv.quantity < inv.safeQuantity);
     
-    // 热销商品
+    // 热销商品统计
+    // 只统计已完成订单（status=1），自动排除已退货订单（status=0）
+    // 这样可以确保热销商品的数量准确反映实际销售情况
     const orderItems = await prisma.orderItem.groupBy({
       by: ['skuId', 'productName'],
       _sum: { quantity: true },
-      where: { order: { createdAt: { gte: thisMonth } } },
+      where: {
+        order: {
+          createdAt: { gte: thisMonth },
+          status: 1 // 只统计已完成的订单，排除已退货(status=0)
+        }
+      },
       orderBy: { _sum: { quantity: 'desc' } },
       take: 5
     });
-    
+
+    // 退货榜单
+    const refundOrders = await prisma.orderReturn.findMany({
+      where: {
+        createdAt: { gte: thisMonth }
+      },
+      include: {
+        order: {
+          include: {
+            items: true,
+            member: true
+          }
+        }
+      },
+      orderBy: { returnAmount: 'desc' },
+      take: 5
+    });
+
+    const refundLeaderboard = refundOrders.map(refund => ({
+      orderNo: refund.order.orderNo,
+      memberName: refund.order.member?.name || '散客',
+      returnAmount: parseFloat(refund.returnAmount.toFixed(2)),
+      returnReason: refund.returnReason,
+      productNames: refund.order.items.map(item => item.productName).join(', '),
+      createdAt: refund.createdAt
+    }));
+
     success(res, {
-      today: { sales: todaySales, count: todayCount, quantity: todayQuantity },
-      month: { sales: monthSales, count: monthCount },
+      today: {
+        sales: parseFloat(todaySales.toFixed(2)),
+        count: todayCount,
+        quantity: todayQuantity
+      },
+      month: {
+        sales: parseFloat(monthSales.toFixed(2)),
+        count: monthCount
+      },
       newMembers: newMembersThisMonth,
       inventoryWarnings: warnings.length,
-      hotProducts: orderItems
+      hotProducts: orderItems,
+      refundLeaderboard
     }, '获取成功');
   } catch (err) {
     console.error('获取仪表盘数据失败:', err);
@@ -90,9 +131,9 @@ router.get('/daily', async (req, res) => {
     success(res, {
       date: dayjs(targetDate).format('YYYY-MM-DD'),
       salesCount: orders.length,
-      salesAmount,
+      salesAmount: parseFloat(salesAmount.toFixed(2)),
       totalQuantity,
-      discountAmount,
+      discountAmount: parseFloat(discountAmount.toFixed(2)),
       refundCount: refundOrders
     }, '获取成功');
   } catch (err) {
@@ -134,25 +175,25 @@ router.post('/settlement', async (req, res) => {
       create: {
         settlementDate: targetDate,
         salesCount: orders.length,
-        salesAmount,
-        cashAmount,
-        wechatAmount,
-        alipayAmount,
+        salesAmount: parseFloat(salesAmount.toFixed(2)),
+        cashAmount: parseFloat(cashAmount.toFixed(2)),
+        wechatAmount: parseFloat(wechatAmount.toFixed(2)),
+        alipayAmount: parseFloat(alipayAmount.toFixed(2)),
         refundCount: 0,
-        refundAmount,
-        discountAmount,
+        refundAmount: parseFloat(refundAmount.toFixed(2)),
+        discountAmount: parseFloat(discountAmount.toFixed(2)),
         status: 1,
         operatorId: req.user?.id
       },
       update: {
         salesCount: orders.length,
-        salesAmount,
-        cashAmount,
-        wechatAmount,
-        alipayAmount,
+        salesAmount: parseFloat(salesAmount.toFixed(2)),
+        cashAmount: parseFloat(cashAmount.toFixed(2)),
+        wechatAmount: parseFloat(wechatAmount.toFixed(2)),
+        alipayAmount: parseFloat(alipayAmount.toFixed(2)),
         refundCount: 0,
-        refundAmount,
-        discountAmount,
+        refundAmount: parseFloat(refundAmount.toFixed(2)),
+        discountAmount: parseFloat(discountAmount.toFixed(2)),
         status: 1,
         operatorId: req.user?.id
       }
@@ -192,7 +233,12 @@ router.get('/sales', async (req, res) => {
       dailyStats[date].sales += order.payAmount;
       dailyStats[date].count += 1;
     });
-    
+
+    // 修正浮点数精度
+    Object.keys(dailyStats).forEach(date => {
+      dailyStats[date].sales = parseFloat(dailyStats[date].sales.toFixed(2));
+    });
+
     // 商品销售排行
     const productStats = await prisma.orderItem.groupBy({
       by: ['productName'],
@@ -201,12 +247,23 @@ router.get('/sales', async (req, res) => {
       orderBy: { _sum: { amount: 'desc' } },
       take: 20
     });
-    
+
+    // 修正商品销售金额精度
+    const formattedProductStats = productStats.map(item => ({
+      ...item,
+      _sum: {
+        quantity: item._sum.quantity,
+        amount: parseFloat((item._sum.amount || 0).toFixed(2))
+      }
+    }));
+
+    const totalSales = parseFloat(orders.reduce((sum, order) => sum + order.payAmount, 0).toFixed(2));
+
     success(res, {
-      totalSales: orders.reduce((sum, order) => sum + order.payAmount, 0),
+      totalSales,
       totalCount: orders.length,
       dailyStats,
-      productStats
+      productStats: formattedProductStats
     }, '获取成功');
   } catch (err) {
     console.error('获取销售统计失败:', err);

@@ -33,7 +33,12 @@ export class ProductService {
     const [products, total] = await Promise.all([
       prisma.product.findMany({
         where,
-        include: { category: true, brand: true },
+        include: {
+          category: true,
+          brand: true,
+          material: true,
+          skus: true
+        },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * pageSize,
         take: pageSize
@@ -59,6 +64,7 @@ export class ProductService {
       include: {
         category: true,
         brand: true,
+        material: true,
         skus: true
       }
     });
@@ -73,7 +79,7 @@ export class ProductService {
     name: string;
     categoryId: number;
     brandId?: number;
-    material?: string;
+    materialId?: number;
     price: number;
     memberPrice?: number;
     costPrice?: number;
@@ -94,7 +100,7 @@ export class ProductService {
         name: data.name,
         categoryId: data.categoryId,
         brandId: data.brandId || null,
-        material: data.material || null,
+        materialId: data.materialId || null,
         price: data.price,
         memberPrice: data.memberPrice || null,
         costPrice: data.costPrice || null,
@@ -104,11 +110,36 @@ export class ProductService {
       },
       include: {
         category: true,
-        brand: true
+        brand: true,
+        material: true
       }
     });
 
-    return product;
+    // 自动创建默认SKU
+    const skuCode = await generateCode('SKU');
+    await prisma.sku.create({
+      data: {
+        productId: product.id,
+        skuCode: skuCode,
+        specs: '默认规格',
+        price: data.price,
+        stockQuantity: 0,
+        status: 1
+      }
+    });
+
+    // 重新查询商品，包含SKU信息
+    const productWithSku = await prisma.product.findUnique({
+      where: { id: product.id },
+      include: {
+        category: true,
+        brand: true,
+        material: true,
+        skus: true
+      }
+    });
+
+    return productWithSku;
   }
 
   /**
@@ -118,7 +149,7 @@ export class ProductService {
     name?: string;
     categoryId?: number;
     brandId?: number;
-    material?: string;
+    materialId?: number;
     price?: number;
     memberPrice?: number;
     costPrice?: number;
@@ -132,7 +163,7 @@ export class ProductService {
         ...(data.name && { name: data.name }),
         ...(data.categoryId && { categoryId: data.categoryId }),
         ...(data.brandId !== undefined && { brandId: data.brandId || null }),
-        ...(data.material !== undefined && { material: data.material }),
+        ...(data.materialId !== undefined && { materialId: data.materialId || null }),
         ...(data.price !== undefined && { price: data.price }),
         ...(data.memberPrice !== undefined && { memberPrice: data.memberPrice || null }),
         ...(data.costPrice !== undefined && { costPrice: data.costPrice || null }),
@@ -142,7 +173,8 @@ export class ProductService {
       },
       include: {
         category: true,
-        brand: true
+        brand: true,
+        material: true
       }
     });
 

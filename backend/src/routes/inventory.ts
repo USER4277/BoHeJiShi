@@ -59,39 +59,43 @@ router.get('/warnings', async (req, res) => {
 router.post('/in', async (req, res) => {
   try {
     const { skuId, quantity, remark } = req.body;
-    
+
     if (!skuId || !quantity) {
       return error(res, 400, '请填写必填项');
     }
-    
+
+    // 转换为整数
+    const skuIdInt = parseInt(skuId);
+    const quantityInt = parseInt(quantity);
+
     // 获取当前库存
     let inventory = await prisma.inventory.findFirst({
-      where: { skuId, warehouseId: 1 }
+      where: { skuId: skuIdInt, warehouseId: 1 }
     });
-    
+
     const beforeQuantity = inventory?.quantity || 0;
-    const afterQuantity = beforeQuantity + quantity;
+    const afterQuantity = beforeQuantity + quantityInt;
     
     if (inventory) {
       inventory = await prisma.inventory.update({
         where: { id: inventory.id },
-        data: { 
+        data: {
           quantity: afterQuantity,
           lastInTime: new Date()
         }
       });
     } else {
       inventory = await prisma.inventory.create({
-        data: { skuId, quantity, warehouseId: 1 }
+        data: { skuId: skuIdInt, quantity: quantityInt, warehouseId: 1 }
       });
     }
-    
+
     // 记录库存变动
     await prisma.inventoryLog.create({
       data: {
-        skuId,
+        skuId: skuIdInt,
         changeType: 'in',
-        changeQuantity: quantity,
+        changeQuantity: quantityInt,
         beforeQuantity,
         afterQuantity,
         billType: 'IN',
@@ -99,9 +103,9 @@ router.post('/in', async (req, res) => {
         remark
       }
     });
-    
+
     // 更新商品库存
-    await updateProductStock(skuId);
+    await updateProductStock(skuIdInt);
     
     success(res, inventory, '入库成功');
   } catch (err) {
@@ -114,37 +118,41 @@ router.post('/in', async (req, res) => {
 router.post('/out', async (req, res) => {
   try {
     const { skuId, quantity, remark } = req.body;
-    
+
     if (!skuId || !quantity) {
       return error(res, 400, '请填写必填项');
     }
-    
+
+    // 转换为整数
+    const skuIdInt = parseInt(skuId);
+    const quantityInt = parseInt(quantity);
+
     // 获取当前库存
     let inventory = await prisma.inventory.findFirst({
-      where: { skuId, warehouseId: 1 }
+      where: { skuId: skuIdInt, warehouseId: 1 }
     });
-    
-    if (!inventory || inventory.quantity < quantity) {
+
+    if (!inventory || inventory.quantity < quantityInt) {
       return error(res, 400, '库存不足');
     }
-    
+
     const beforeQuantity = inventory.quantity;
-    const afterQuantity = beforeQuantity - quantity;
+    const afterQuantity = beforeQuantity - quantityInt;
     
     inventory = await prisma.inventory.update({
       where: { id: inventory.id },
-      data: { 
+      data: {
         quantity: afterQuantity,
         lastOutTime: new Date()
       }
     });
-    
+
     // 记录库存变动
     await prisma.inventoryLog.create({
       data: {
-        skuId,
+        skuId: skuIdInt,
         changeType: 'out',
-        changeQuantity: -quantity,
+        changeQuantity: -quantityInt,
         beforeQuantity,
         afterQuantity,
         billType: 'OUT',
@@ -152,9 +160,9 @@ router.post('/out', async (req, res) => {
         remark
       }
     });
-    
+
     // 更新商品库存
-    await updateProductStock(skuId);
+    await updateProductStock(skuIdInt);
     
     success(res, inventory, '出库成功');
   } catch (err) {
@@ -188,17 +196,53 @@ router.get('/logs', async (req, res) => {
 
 // 更新商品总库存
 async function updateProductStock(skuId: number) {
-  const skus = await prisma.sku.findMany({ where: { id: skuId } });
-  if (skus.length > 0) {
-    const productId = skus[0].productId;
-    const totalStock = await prisma.sku.aggregate({
-      where: { productId },
-      _sum: { stockQuantity: true }
+  try {
+    const sku = await prisma.sku.findUnique({
+      where: { id: skuId },
+      select: { productId: true }
     });
+
+    if (!sku) return;
+
+    // 汇总该商品所有SKU的库存
+    const allSkus = await prisma.sku.findMany({
+      where: { productId: sku.productId },
+      select: { id: true }
+    });
+
+    const skuIds = allSkus.map(s => s.id);
+
+    // 从 Inventory 表获取总库存
+    const totalInventory = await prisma.inventory.aggregate({
+      where: {
+        skuId: { in: skuIds },
+        warehouseId: 1
+      },
+      _sum: { quantity: true }
+    });
+
+    const totalStock = totalInventory._sum.quantity || 0;
+
+    // 更新商品总库存
     await prisma.product.update({
-      where: { id: productId },
-      data: { stockQuantity: totalStock._sum.stockQuantity || 0 }
+      where: { id: sku.productId },
+      data: { stockQuantity: totalStock }
     });
+
+    // 同时更新 SKU 的库存数量（保持同步）
+    const skuInventory = await prisma.inventory.findFirst({
+      where: { skuId, warehouseId: 1 }
+    });
+
+    if (skuInventory) {
+      await prisma.sku.update({
+        where: { id: skuId },
+        data: { stockQuantity: skuInventory.quantity }
+      });
+    }
+  } catch (err) {
+    console.error('更新商品库存失败:', err);
+    throw err;
   }
 }
 

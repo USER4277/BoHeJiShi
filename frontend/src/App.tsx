@@ -5,8 +5,9 @@ import { antdTheme } from './theme/colors'
 import MainLayout from './pages/layout/MainLayout'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
+import Profile from './pages/Profile'
 import ProductList from './pages/product/ProductList'
-import CategoryList from './pages/product/CategoryList'
+import MasterDataManagement from './pages/masterdata/MasterDataManagement'
 import InventoryList from './pages/inventory/InventoryList'
 import POS from './pages/sale/POS'
 import OrderList from './pages/sale/OrderList'
@@ -28,6 +29,8 @@ import PromotionList from './pages/promotion/PromotionList'
 import CouponList from './pages/promotion/CouponList'
 import SalesReport from './pages/report/SalesReport'
 import FinancialReport from './pages/report/FinancialReport'
+import FinancialReports from './pages/financial/FinancialReports'
+import ManualAccount from './pages/manual-account/ManualAccount'
 import { useAuthStore } from './stores/authStore'
 
 function App() {
@@ -44,8 +47,9 @@ function App() {
           >
             <Route index element={<Dashboard />} />
             <Route path="dashboard" element={<Dashboard />} />
+            <Route path="profile" element={<Profile />} />
             <Route path="products" element={<ProductList />} />
-            <Route path="categories" element={<CategoryList />} />
+            <Route path="masterdata" element={<MasterDataManagement />} />
             <Route path="inventory" element={<InventoryList />} />
             <Route path="pos" element={<POS />} />
             <Route path="orders" element={<OrderList />} />
@@ -68,6 +72,8 @@ function App() {
             <Route path="coupons" element={<CouponList />} />
             <Route path="reports/sales" element={<SalesReport />} />
             <Route path="reports/financial" element={<FinancialReport />} />
+            <Route path="financial" element={<FinancialReports />} />
+            <Route path="manual-account" element={<ManualAccount />} />
           </Route>
         </Routes>
       </BrowserRouter>

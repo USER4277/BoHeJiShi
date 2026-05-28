@@ -107,10 +107,37 @@ export default function SystemConfig() {
         <Form form={form} layout="vertical">
           <Row gutter={16}>
             <Col span={12}>
+              <Form.Item
+                name="memberDiscountRate"
+                label="统一会员折扣比例"
+                help="用于计算商品会员价，如0.95表示95折"
+                rules={[
+                  { required: true, message: '请输入会员折扣比例' },
+                  { type: 'number', min: 0.01, max: 1, message: '折扣比例必须在0.01-1之间' }
+                ]}
+              >
+                <InputNumber
+                  min={0.01}
+                  max={1}
+                  step={0.01}
+                  precision={2}
+                  style={{ width: '100%' }}
+                  placeholder="如: 0.95 表示95折"
+                  formatter={value => `${(Number(value) * 100).toFixed(0)}折`}
+                  parser={value => {
+                    const num = value?.replace('折', '') || ''
+                    return Number(num) / 100
+                  }}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
               <Form.Item name="points_rate" label="积分倍率(每消费1元)">
                 <InputNumber min={0} style={{ width: '100%' }} placeholder="每消费1元获得的积分" />
               </Form.Item>
             </Col>
+          </Row>
+          <Row gutter={16}>
             <Col span={12}>
               <Form.Item name="points_to_money" label="积分抵现比例">
                 <InputNumber min={1} style={{ width: '100%' }} placeholder="100积分抵多少元" />

@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
-import { Table, Card, Space, Button, Tag, Input, Select, DatePicker, Modal, message, Descriptions, Divider } from 'antd'
+import { Table, Card, Space, Button, Tag, Input, Select, DatePicker, Modal, message, Descriptions, Divider, Form } from 'antd'
 import { EyeOutlined, UndoOutlined, PrinterOutlined, SearchOutlined } from '@ant-design/icons'
 import { saleApi } from '../../api/sale'
 import dayjs from 'dayjs'
 
 const { RangePicker } = DatePicker
+const { TextArea } = Input
 
 export default function OrderList() {
   const [loading, setLoading] = useState(false)
@@ -70,12 +71,57 @@ export default function OrderList() {
   }
 
   const handleReturn = async (order: any) => {
+    const [form] = Form.useForm()
+
     Modal.confirm({
       title: '确认退货',
-      content: '确定要退货此订单吗？退货后库存将恢复，积分将扣除。',
+      width: 500,
+      content: (
+        <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
+          <Form.Item
+            name="returnReason"
+            label="退货原因"
+            rules={[{ required: true, message: '请选择或输入退货原因' }]}
+          >
+            <Select
+              placeholder="请选择退货原因"
+              options={[
+                { label: '质量问题', value: '质量问题' },
+                { label: '尺码不合适', value: '尺码不合适' },
+                { label: '颜色/款式不喜欢', value: '颜色/款式不喜欢' },
+                { label: '收到商品与描述不符', value: '收到商品与描述不符' },
+                { label: '商品破损或有瑕疵', value: '商品破损或有瑕疵' },
+                { label: '买错了/不需要了', value: '买错了/不需要了' },
+                { label: '价格原因', value: '价格原因' },
+                { label: '服务态度问题', value: '服务态度问题' },
+                { label: '顾客个人原因', value: '顾客个人原因' },
+                { label: '其他原因', value: '其他原因' }
+              ]}
+              showSearch
+              allowClear
+            />
+          </Form.Item>
+          <Form.Item
+            name="returnNote"
+            label="备注说明"
+          >
+            <TextArea
+              rows={3}
+              placeholder="可补充详细说明（选填）"
+              maxLength={200}
+              showCount
+            />
+          </Form.Item>
+        </Form>
+      ),
       onOk: async () => {
         try {
-          await saleApi.returnOrder(order.id, { returnReason: '顾客要求退货' })
+          const values = await form.validateFields()
+          const returnReason = values.returnNote
+            ? `${values.returnReason} - ${values.returnNote}`
+            : values.returnReason
+
+          await saleApi.returnOrder(order.id, { returnReason })
           message.success('退货成功')
           loadData()
         } catch (e: any) {
@@ -260,6 +306,44 @@ ${order.member ? `会员: ${order.member.name}\n积分:+${order.pointsEarned || 
               <div style={{ marginTop: 16, color: '#999' }}>
                 备注: {currentOrder.remark}
               </div>
+            )}
+
+            {currentOrder.returns && currentOrder.returns.length > 0 && (
+              <>
+                <Divider style={{ borderColor: '#ff4d4f' }}>退货信息</Divider>
+                {currentOrder.returns.map((returnItem: any) => (
+                  <Card
+                    key={returnItem.id}
+                    size="small"
+                    style={{
+                      background: '#fff1f0',
+                      border: '1px solid #ffccc7',
+                      marginTop: 8
+                    }}
+                  >
+                    <Descriptions column={2} size="small">
+                      <Descriptions.Item label="退货单号">
+                        <span style={{ fontFamily: 'monospace', color: '#ff4d4f' }}>
+                          {returnItem.returnNo}
+                        </span>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="退款金额">
+                        <span style={{ color: '#ff4d4f', fontWeight: 'bold' }}>
+                          ¥{returnItem.returnAmount.toFixed(2)}
+                        </span>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="退货原因" span={2}>
+                        <span style={{ color: '#8c8c8c' }}>
+                          {returnItem.returnReason || '无'}
+                        </span>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="退货时间" span={2}>
+                        {dayjs(returnItem.createdAt).format('YYYY-MM-DD HH:mm:ss')}
+                      </Descriptions.Item>
+                    </Descriptions>
+                  </Card>
+                ))}
+              </>
             )}
           </div>
         )}

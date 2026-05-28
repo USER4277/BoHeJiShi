@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
-import { Form, Input, InputNumber, Select, Card, Button, Space, message, Upload, Modal, TreeSelect } from 'antd'
-import { PlusOutlined, UploadOutlined, DeleteOutlined } from '@ant-design/icons'
+import { Form, Input, InputNumber, Select, Card, Button, Space, message, Upload, Modal, TreeSelect, Divider } from 'antd'
+import { PlusOutlined, UploadOutlined, DeleteOutlined, CalculatorOutlined } from '@ant-design/icons'
 import { useNavigate, useParams } from 'react-router-dom'
-import { productApi, categoryApi } from '../../api/product'
+import { productApi, categoryApi, brandApi, materialApi } from '../../api/product'
+import { systemApi } from '../../api/system'
 import type { UploadFile } from 'antd/es/upload/interface'
 
 const { TextArea } = Input
@@ -13,18 +14,41 @@ export default function ProductForm() {
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
   const [categories, setCategories] = useState([])
+  const [brands, setBrands] = useState([])
+  const [materials, setMaterials] = useState([])
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null)
   const [mainImage, setMainImage] = useState<string>('')
   const [detailImages, setDetailImages] = useState<string[]>([])
   const [detailList, setDetailList] = useState<UploadFile[]>([])
+  const [memberDiscountRate, setMemberDiscountRate] = useState<number>(0.95) // 默认95折
 
   const isEdit = !!id
 
   useEffect(() => {
     loadCategories()
+    loadMemberDiscount()
     if (isEdit) {
       loadProduct()
     }
   }, [id])
+
+  useEffect(() => {
+    if (selectedCategoryId) {
+      loadBrands(selectedCategoryId)
+      loadMaterials(selectedCategoryId)
+    }
+  }, [selectedCategoryId])
+
+  const loadMemberDiscount = async () => {
+    try {
+      const res: any = await systemApi.getConfigByKey('memberDiscountRate')
+      if (res.data?.configValue) {
+        setMemberDiscountRate(parseFloat(res.data.configValue))
+      }
+    } catch (e) {
+      console.warn('加载会员折扣配置失败，使用默认值95折', e)
+    }
+  }
 
   const loadCategories = async () => {
     try {
@@ -35,6 +59,24 @@ export default function ProductForm() {
     }
   }
 
+  const loadBrands = async (categoryId: number) => {
+    try {
+      const res: any = await brandApi.getList({ categoryId })
+      setBrands(res.data.list || [])
+    } catch (e) {
+      console.error('加载品牌失败', e)
+    }
+  }
+
+  const loadMaterials = async (categoryId: number) => {
+    try {
+      const res: any = await materialApi.getList({ categoryId })
+      setMaterials(res.data.list || [])
+    } catch (e) {
+      console.error('加载材质失败', e)
+    }
+  }
+
   const loadProduct = async () => {
     try {
       const res: any = await productApi.getDetail(parseInt(id!))
@@ -42,16 +84,90 @@ export default function ProductForm() {
       form.setFieldsValue({
         name: data.name,
         categoryId: data.categoryId,
-        brand: data.brand,
-        material: data.material,
+        brandId: data.brandId,
+        materialId: data.materialId,
         price: data.price,
         memberPrice: data.memberPrice,
         costPrice: data.costPrice,
       })
       setMainImage(data.mainImage || '')
       setDetailImages(data.detailImages ? JSON.parse(data.detailImages) : [])
+      setSelectedCategoryId(data.categoryId)
     } catch (e) {
       console.error('加载商品失败', e)
+    }
+  }
+
+  const handleCategoryChange = (categoryId: number) => {
+    setSelectedCategoryId(categoryId)
+    // 清空品牌和材质选择
+    form.setFieldsValue({ brandId: undefined, materialId: undefined })
+    setBrands([])
+    setMaterials([])
+  }
+
+  // 根据成本价和毛利率计算吊牌价
+  const calculatePriceFromMargin = (costPrice: number, marginRate: number) => {
+    if (!costPrice || !marginRate) return null
+    // 吊牌价 = 成本价 / (1 - 毛利率)
+    const price = costPrice / (1 - marginRate / 100)
+    return Math.round(price * 100) / 100 // 保留两位小数
+  }
+
+  // 根据吊牌价和会员折扣计算会员价
+  const calculateMemberPrice = (price: number) => {
+    if (!price || !memberDiscountRate) return null
+    const memberPrice = price * memberDiscountRate
+    return Math.round(memberPrice * 100) / 100 // 保留两位小数
+  }
+
+  // 毛利率变化时自动计算价格
+  const handleMarginRateChange = (marginRate: number | null) => {
+    if (!marginRate) return
+
+    const costPrice = form.getFieldValue('costPrice')
+    if (costPrice) {
+      const calculatedPrice = calculatePriceFromMargin(costPrice, marginRate)
+      if (calculatedPrice) {
+        form.setFieldsValue({ price: calculatedPrice })
+
+        // 同时计算会员价
+        const calculatedMemberPrice = calculateMemberPrice(calculatedPrice)
+        if (calculatedMemberPrice) {
+          form.setFieldsValue({ memberPrice: calculatedMemberPrice })
+        }
+      }
+    } else {
+      message.warning('请先输入成本价')
+    }
+  }
+
+  // 成本价变化时，如果有毛利率则自动计算价格
+  const handleCostPriceChange = (costPrice: number | null) => {
+    if (!costPrice) return
+
+    const marginRate = form.getFieldValue('marginRate')
+    if (marginRate) {
+      const calculatedPrice = calculatePriceFromMargin(costPrice, marginRate)
+      if (calculatedPrice) {
+        form.setFieldsValue({ price: calculatedPrice })
+
+        // 同时计算会员价
+        const calculatedMemberPrice = calculateMemberPrice(calculatedPrice)
+        if (calculatedMemberPrice) {
+          form.setFieldsValue({ memberPrice: calculatedMemberPrice })
+        }
+      }
+    }
+  }
+
+  // 吊牌价变化时自动计算会员价
+  const handlePriceChange = (price: number | null) => {
+    if (!price) return
+
+    const calculatedMemberPrice = calculateMemberPrice(price)
+    if (calculatedMemberPrice) {
+      form.setFieldsValue({ memberPrice: calculatedMemberPrice })
     }
   }
 
@@ -106,29 +222,94 @@ export default function ProductForm() {
               placeholder="请选择分类"
               treeData={renderCategoryTree(categories)}
               treeDefaultExpandAll
+              onChange={handleCategoryChange}
               style={{ width: '100%' }}
             />
           </Form.Item>
-          
-          <Form.Item name="brand" label="品牌">
-            <Input placeholder="请输入品牌" />
+
+          <Form.Item name="brandId" label="品牌">
+            <Select
+              placeholder="请先选择分类"
+              disabled={!selectedCategoryId}
+              options={brands.map(b => ({ label: b.name, value: b.id }))}
+              allowClear
+            />
           </Form.Item>
-          
-          <Form.Item name="material" label="材质">
-            <Input placeholder="如: 纯银、镀金、不锈钢" />
+
+          <Form.Item name="materialId" label="材质">
+            <Select
+              placeholder="请先选择分类"
+              disabled={!selectedCategoryId}
+              options={materials.map(m => ({ label: m.name, value: m.id }))}
+              allowClear
+            />
           </Form.Item>
-          
+
+          <Divider orientation="left">
+            <CalculatorOutlined /> 价格设置
+          </Divider>
+
+          <Space style={{ width: '100%', marginBottom: 16 }} align="start">
+            <Form.Item
+              name="costPrice"
+              label="成本价(元)"
+              rules={[{ required: true, message: '请输入成本价' }]}
+            >
+              <InputNumber
+                min={0}
+                precision={2}
+                style={{ width: 150 }}
+                placeholder="成本价"
+                onChange={handleCostPriceChange}
+              />
+            </Form.Item>
+
+            <Form.Item name="marginRate" label="毛利率(%)">
+              <InputNumber
+                min={0}
+                max={100}
+                precision={1}
+                style={{ width: 150 }}
+                placeholder="如: 30"
+                onChange={handleMarginRateChange}
+                addonAfter="%"
+              />
+            </Form.Item>
+          </Space>
+
+          <div style={{
+            background: '#f0f9ff',
+            padding: '12px 16px',
+            borderRadius: 8,
+            marginBottom: 16,
+            fontSize: 12,
+            color: '#0369a1'
+          }}>
+            💡 提示: 输入成本价和毛利率后，系统会自动计算吊牌价和会员价（当前会员折扣: {(memberDiscountRate * 100).toFixed(0)}折）
+          </div>
+
           <Space style={{ width: '100%' }} size="large">
-            <Form.Item name="price" label="吊牌价(元)" rules={[{ required: true }]}>
-              <InputNumber min={0} precision={2} style={{ width: 150 }} />
+            <Form.Item
+              name="price"
+              label="吊牌价(元)"
+              rules={[{ required: true, message: '请输入吊牌价' }]}
+            >
+              <InputNumber
+                min={0}
+                precision={2}
+                style={{ width: 150 }}
+                placeholder="吊牌价"
+                onChange={handlePriceChange}
+              />
             </Form.Item>
-            
+
             <Form.Item name="memberPrice" label="会员价(元)">
-              <InputNumber min={0} precision={2} style={{ width: 150 }} />
-            </Form.Item>
-            
-            <Form.Item name="costPrice" label="成本价(元)">
-              <InputNumber min={0} precision={2} style={{ width: 150 }} />
+              <InputNumber
+                min={0}
+                precision={2}
+                style={{ width: 150 }}
+                placeholder="会员价"
+              />
             </Form.Item>
           </Space>
           
@@ -141,7 +322,8 @@ export default function ProductForm() {
                 </div>
               )}
               <Upload
-                action="/api/upload"
+                action="/api/upload/image"
+                name="file"
                 showUploadList={false}
                 onChange={handleMainImageChange}
               >
@@ -153,7 +335,8 @@ export default function ProductForm() {
           <Form.Item label="详情图">
             <div>
               <Upload
-                action="/api/upload"
+                action="/api/upload/image"
+                name="file"
                 listType="picture-card"
                 fileList={detailList}
                 onChange={handleDetailChange}
@@ -177,12 +360,10 @@ export default function ProductForm() {
   )
 }
 
-function renderCategoryTree(categories: any[], parentId: number | null = null): any[] {
-  return categories
-    .filter(c => c.parentId === parentId)
-    .map(c => ({
-      title: c.name,
-      value: c.id,
-      children: renderCategoryTree(categories, c.id)
-    }))
+function renderCategoryTree(categories: any[]): any[] {
+  return categories.map(c => ({
+    title: c.name,
+    value: c.id,
+    children: c.children && c.children.length > 0 ? renderCategoryTree(c.children) : undefined
+  }))
 }

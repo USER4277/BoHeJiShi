@@ -26,6 +26,7 @@ export default function POS() {
   const [holds, setHolds] = useState<any[]>([])
   const [payWay, setPayWay] = useState<string>('cash')
   const [discountAmount, setDiscountAmount] = useState<number>(0)
+  const [usePoints, setUsePoints] = useState<number>(0)
   const [remark, setRemark] = useState('')
 
   const totalAmount = cart.reduce((sum, item) => {
@@ -33,7 +34,10 @@ export default function POS() {
     return sum + itemPrice * item.quantity
   }, 0)
   const totalQuantity = cart.reduce((sum, item) => sum + item.quantity, 0)
-  const finalAmount = totalAmount - discountAmount
+  const pointsDeduction = usePoints * 0.002 // 积分抵扣金额
+  const finalAmount = Math.max(0, totalAmount - discountAmount - pointsDeduction)
+  const pointsWillEarn = Math.floor(finalAmount) // 本次可获得的积分
+  const maxPointsCanUse = member ? Math.min(member.points, Math.floor((totalAmount - discountAmount) / 0.002)) : 0 // 最多可使用积分
 
   useEffect(() => {
     loadHolds()
@@ -114,6 +118,16 @@ export default function POS() {
     if (cart.length === 0) {
       return message.warning('请先添加商品')
     }
+
+    // 验证积分使用
+    if (usePoints > 0 && !member) {
+      return message.error('请先选择会员才能使用积分')
+    }
+
+    if (usePoints > maxPointsCanUse) {
+      return message.error(`最多可使用 ${maxPointsCanUse} 积分`)
+    }
+
     try {
       const orderData = {
         items: cart.map(item => ({
@@ -125,15 +139,17 @@ export default function POS() {
         memberId: member?.id,
         payWay: [{ way: payWay, amount: finalAmount }],
         discountAmount,
+        usePoints,
         remark
       }
-      
+
       const res: any = await saleApi.createOrder(orderData)
       message.success('结算成功')
       printReceipt(res.data)
       setCart([])
       setMember(null)
       setDiscountAmount(0)
+      setUsePoints(0)
       setRemark('')
       setPayModalVisible(false)
     } catch (e: any) {
@@ -254,8 +270,13 @@ ${member ? `会员: ${member.name}\n积分:+${order.pointsEarned || 0}` : ''}
         <Col span={14}>
           <Card title="商品搜索" style={{ height: '100%' }} extra={
             <Space>
-              <Button icon={<UserOutlined />} onClick={() => setMemberModalVisible(true)}>
-                {member ? member.name : '选择会员'}
+              <Button
+                icon={<UserOutlined />}
+                onClick={() => setMemberModalVisible(true)}
+                type={member ? "default" : "primary"}
+                style={member ? {} : { background: '#52c41a', borderColor: '#52c41a' }}
+              >
+                {member ? `会员: ${member.name}` : '选择会员(可获积分)'}
               </Button>
               <Badge count={holds.length}>
                 <Button icon={<PauseOutlined />} onClick={() => setHoldModalVisible(true)}>挂单</Button>
@@ -313,22 +334,58 @@ ${member ? `会员: ${member.name}\n积分:+${order.pointsEarned || 0}` : ''}
             bodyStyle={{ flex: 1, display: 'flex', flexDirection: 'column' }}
           >
             {member && (
-              <div style={{ 
-                background: '#f6ffed', 
-                padding: 8, 
-                borderRadius: 4, 
-                marginBottom: 8,
+              <div style={{
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                color: 'white',
+                padding: 12,
+                borderRadius: 8,
+                marginBottom: 12,
                 display: 'flex',
                 justifyContent: 'space-between',
-                alignItems: 'center'
+                alignItems: 'center',
+                boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
               }}>
                 <Space>
-                  <UserOutlined />
-                  <span>{member.name}</span>
-                  <Tag color="gold">Lv.{member.level || 1}</Tag>
-                  <span style={{ color: '#999' }}>积分: {member.points || 0}</span>
+                  <UserOutlined style={{ fontSize: 18 }} />
+                  <div>
+                    <div style={{ fontWeight: 'bold', marginBottom: 4 }}>{member.name}</div>
+                    <Space size="small">
+                      <Tag color="gold" style={{ margin: 0 }}>
+                        {['普通会员', '银卡', '金卡', '钻石'][member.level - 1] || '普通会员'}
+                      </Tag>
+                      <span style={{ fontSize: 12 }}>当前积分: {member.points || 0}</span>
+                    </Space>
+                  </div>
                 </Space>
-                <Button type="link" size="small" onClick={handleClearMember}>清除</Button>
+                <Button
+                  type="text"
+                  size="small"
+                  onClick={handleClearMember}
+                  style={{ color: 'white' }}
+                >
+                  清除
+                </Button>
+              </div>
+            )}
+
+            {!member && cart.length > 0 && (
+              <div style={{
+                background: '#fff7e6',
+                border: '1px solid #ffd591',
+                padding: 12,
+                borderRadius: 8,
+                marginBottom: 12,
+                textAlign: 'center',
+                cursor: 'pointer'
+              }}
+              onClick={() => setMemberModalVisible(true)}
+              >
+                <div style={{ color: '#fa8c16', marginBottom: 4 }}>
+                  💡 选择会员可获得 <span style={{ fontWeight: 'bold', fontSize: 16 }}>{pointsWillEarn}</span> 积分
+                </div>
+                <div style={{ fontSize: 12, color: '#8c8c8c' }}>
+                  点击选择会员身份
+                </div>
               </div>
             )}
             
@@ -354,8 +411,20 @@ ${member ? `会员: ${member.name}\n积分:+${order.pointsEarned || 0}` : ''}
                 </div>
                 {discountAmount > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', color: '#52c41a' }}>
-                    <span>优惠:</span>
+                    <span>折扣优惠:</span>
                     <span>-¥{discountAmount.toFixed(2)}</span>
+                  </div>
+                )}
+                {pointsDeduction > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ff9800' }}>
+                    <span>积分抵扣 ({usePoints}积分):</span>
+                    <span>-¥{pointsDeduction.toFixed(2)}</span>
+                  </div>
+                )}
+                {member && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#1890ff', marginTop: 4 }}>
+                    <span>🎁 本次可获积分:</span>
+                    <span style={{ fontWeight: 'bold' }}>+{pointsWillEarn}</span>
                   </div>
                 )}
               </div>
@@ -404,15 +473,53 @@ ${member ? `会员: ${member.name}\n积分:+${order.pointsEarned || 0}` : ''}
         width={400}
       >
         <div style={{ textAlign: 'center', padding: 16 }}>
+          {member && (
+            <div style={{
+              background: '#f0f5ff',
+              padding: 12,
+              borderRadius: 8,
+              marginBottom: 16,
+              border: '1px solid #adc6ff'
+            }}>
+              <div style={{ marginBottom: 8 }}>
+                <UserOutlined style={{ marginRight: 8 }} />
+                <span style={{ fontWeight: 'bold' }}>{member.name}</span>
+                <Tag color="blue" style={{ marginLeft: 8 }}>
+                  {['普通会员', '银卡', '金卡', '钻石'][member.level - 1] || '普通会员'}
+                </Tag>
+              </div>
+              <div style={{ fontSize: 12, color: '#666' }}>
+                当前积分: {member.points} → 消费后: {member.points + pointsWillEarn}
+              </div>
+              <div style={{ fontSize: 14, color: '#1890ff', fontWeight: 'bold', marginTop: 4 }}>
+                本次获得 +{pointsWillEarn} 积分
+              </div>
+            </div>
+          )}
+
           <div style={{ fontSize: 14, color: '#666', marginBottom: 8 }}>应付金额</div>
           <div style={{ fontSize: 36, fontWeight: 'bold', color: '#ff4d4f' }}>
             ¥{finalAmount.toFixed(2)}
           </div>
+
+          {!member && (
+            <div style={{
+              background: '#fffbe6',
+              border: '1px solid #ffe58f',
+              padding: 8,
+              borderRadius: 4,
+              marginTop: 12,
+              fontSize: 12,
+              color: '#faad14'
+            }}>
+              💡 提示: 选择会员可获得 {pointsWillEarn} 积分
+            </div>
+          )}
           
           <Divider>收款方式</Divider>
-          <Select 
-            value={payWay} 
-            onChange={setPayWay} 
+          <Select
+            value={payWay}
+            onChange={setPayWay}
             style={{ width: '100%' }}
             size="large"
           >
@@ -422,10 +529,10 @@ ${member ? `会员: ${member.name}\n积分:+${order.pointsEarned || 0}` : ''}
             <Select.Option value="card">银行卡</Select.Option>
             <Select.Option value="mixed">混合支付</Select.Option>
           </Select>
-          
+
           <div style={{ marginTop: 16 }}>
-            <Input 
-              placeholder="折扣金额(可为空)" 
+            <Input
+              placeholder="折扣金额(可为空)"
               type="number"
               value={discountAmount}
               onChange={e => setDiscountAmount(parseFloat(e.target.value) || 0)}
@@ -433,10 +540,60 @@ ${member ? `会员: ${member.name}\n积分:+${order.pointsEarned || 0}` : ''}
               suffix="元"
             />
           </div>
-          
+
+          {member && member.points > 0 && (
+            <div style={{ marginTop: 16 }}>
+              <div style={{
+                background: '#fff7e6',
+                padding: 12,
+                borderRadius: 8,
+                marginBottom: 8,
+                border: '1px solid #ffd591'
+              }}>
+                <div style={{ fontSize: 12, color: '#8c8c8c', marginBottom: 8 }}>
+                  积分抵扣 (1积分=0.002元)
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <span style={{ fontSize: 12 }}>可用积分: {member.points}</span>
+                  <span style={{ fontSize: 12 }}>最多抵扣: ¥{(maxPointsCanUse * 0.002).toFixed(2)}</span>
+                </div>
+                <Input
+                  type="number"
+                  placeholder={`最多使用 ${maxPointsCanUse} 积分`}
+                  value={usePoints || ''}
+                  onChange={e => {
+                    const val = parseInt(e.target.value) || 0
+                    if (val <= maxPointsCanUse) {
+                      setUsePoints(val)
+                    } else {
+                      setUsePoints(maxPointsCanUse)
+                      message.warning(`最多可使用 ${maxPointsCanUse} 积分`)
+                    }
+                  }}
+                  prefix="使用积分:"
+                  suffix={
+                    <Space size="small">
+                      <span style={{ fontSize: 12, color: '#ff9800' }}>
+                        {usePoints > 0 ? `-¥${(usePoints * 0.002).toFixed(2)}` : ''}
+                      </span>
+                      <Button
+                        size="small"
+                        type="link"
+                        onClick={() => setUsePoints(maxPointsCanUse)}
+                        style={{ padding: 0, height: 'auto' }}
+                      >
+                        全部
+                      </Button>
+                    </Space>
+                  }
+                />
+              </div>
+            </div>
+          )}
+
           <div style={{ marginTop: 16 }}>
-            <Input.TextArea 
-              placeholder="备注(可选)" 
+            <Input.TextArea
+              placeholder="备注(可选)"
               value={remark}
               onChange={e => setRemark(e.target.value)}
               rows={2}
